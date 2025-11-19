@@ -10,7 +10,7 @@ if [ ! -f github_credentials.env ]; then
 fi
 source github_credentials.env
 
-cd $HOME/network-sys-assessment || exit 1
+cd $HOME/FamilyTree || exit 1
 
 # Check if .git exists
 if [ ! -d .git ]; then
