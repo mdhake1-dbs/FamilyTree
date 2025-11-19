@@ -1,0 +1,3 @@
+# Ignore Terraform state and binaries
+github_credentials.env
+
