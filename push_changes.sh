@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Tested DB Connection"
+git commit -m "Sample Frontend - UI"
 git branch -M main
 git push -u origin main
 
