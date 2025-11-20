@@ -2,7 +2,7 @@
 # This script commits and pushes changes to GitHub
 
 set -e
-
+cd $HOME/FamilyTree/helper_scripts || exit 1
 # Load credentials
 if [ ! -f github_credentials.env ]; then
   echo "github_credentials.env not found!"

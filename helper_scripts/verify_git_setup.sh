@@ -4,6 +4,7 @@
 set -e
 
 # Load credentials
+cd $HOME/FamilyTree/helper_scripts || exit 1
 if [ ! -f github_credentials.env ]; then
     echo "github_credentials.env not found!"
     exit 1
@@ -11,6 +12,7 @@ fi
 source github_credentials.env
 
 # 1] Check if Git repo exists
+cd $HOME/FamilyTree/ || exit 1
 if [ ! -d .git ]; then
     echo "Git is not initialized in this folder."
     exit 1
