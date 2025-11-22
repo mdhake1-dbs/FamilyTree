@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Basic Cloud Set-up"
+git commit -m "Test Commit"
 git branch -M main
 git push -u origin main
 
