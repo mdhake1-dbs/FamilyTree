@@ -1,0 +1,82 @@
+- name: Configure web VM
+  hosts: web
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install prerequisites
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repo
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+          
+    - name: Install 'at' utility for container scheduling
+      ansible.builtin.apt:
+        name: at
+        state: present
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        update_cache: yes
+        state: latest
+
+    - name: Ensure docker service is enabled and started
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Pull app image from Docker Hub (if using public image)
+      docker_image:
+        name: mdhake1dbs/demo-app
+        source: pull
+
+    - name: Run container
+      docker_container:
+        name: demo-app
+        image: mdhake1dbs/demo-app
+        state: started
+        restart_policy: always
+        ports:
+          - "80:80"
+
+    - name: Schedule Docker container stop in 4 hours
+      ansible.builtin.shell: |
+        echo "docker stop demo-app && docker rm demo-app" | at now + 4 hours
+      args:
+        executable: /bin/bash # Use bash for the 'at' command
+          # This task should run only after the 'Run container' task
+
+    - name: Check scheduled job status (optional) - RUN SHELL
+      ansible.builtin.shell: atq
+      register: at_jobs
+      changed_when: false
+
+    - name: Report scheduled job ID - DEBUG
+      ansible.builtin.debug:
+        msg: "Scheduled stop job created on instance. ID/Time: {{ at_jobs.stdout_lines }}"
+      delegate_to: localhost
+      run_once: true
