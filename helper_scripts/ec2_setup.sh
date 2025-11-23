@@ -5,6 +5,7 @@ set -e # Exit immediately if any command fails
 TERRAFORM_DIR="./terraform"
 ANSIBLE_INVENTORY_FILE="./ansible/hosts.ini"
 ANSIBLE_PLAYBOOK_FILE="./ansible/playbook.yml"
+export ANSIBLE_HOST_KEY_CHECKING=False
 
 # 1. Run Terraform Apply and Capture the IP
 echo "--- Running Terraform Apply ---"

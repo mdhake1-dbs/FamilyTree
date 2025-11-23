@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Test Commit"
+git commit -m "Testing Docker Setup"
 git branch -M main
 git push -u origin main
 
