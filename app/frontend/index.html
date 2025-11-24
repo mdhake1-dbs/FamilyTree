@@ -1,3 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Tree Manager - People CRUD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h2 {
+            color: #444;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button.delete {
+            background-color: #dc3545;
+        }
+        
+        button.delete:hover {
+            background-color: #c82333;
+        }
+        
+        button.secondary {
+            background-color: #6c757d;
+        }
+        
+        button.secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        #peopleList {
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .actions {
+            white-space: nowrap;
+        }
+        
+        .actions button {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        
+        .message {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
 <body>
     <div class="container">
         <h1>Family Tree Manager</h1>
@@ -88,3 +266,260 @@
         </div>
     </div>
 
+    <script>
+
+        const API_URL = 'http://localhost:5000/api';
+        let editingId = null;
+
+        // Load all people on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPeople();
+        });
+
+        // Form submission handler
+        document.getElementById('personForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const personData = {
+                given_name: document.getElementById('givenName').value,
+                family_name: document.getElementById('familyName').value,
+                other_names: document.getElementById('otherNames').value,
+                gender: document.getElementById('gender').value,
+                birth_date: document.getElementById('birthDate').value || null,
+                death_date: document.getElementById('deathDate').value || null,
+                birth_place: document.getElementById('birthPlace').value,
+                bio: document.getElementById('bio').value,
+                privacy: document.getElementById('privacy').value
+            };
+            
+            if (editingId) {
+                await updatePerson(editingId, personData);
+            } else {
+                await createPerson(personData);
+            }
+        });
+
+        // CREATE operation
+        async function createPerson(personData) {
+            try {
+                const response = await fetch(`${API_URL}/people`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(personData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Person added successfully!', 'success');
+                    resetForm();
+                    loadPeople();
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error connecting to server: ' + error.message, 'error');
+            }
+        }
+
+        // READ operation - Get all people
+        async function loadPeople() {
+            const listDiv = document.getElementById('peopleList');
+            listDiv.innerHTML = '<div class="loading">Loading...</div>';
+            
+            try {
+                const response = await fetch(`${API_URL}/people`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayPeople(result.data);
+                } else {
+                    listDiv.innerHTML = `<div class="error">Error: ${result.error}</div>`;
+                }
+            } catch (error) {
+                listDiv.innerHTML = `<div class="error">Error connecting to server: ${error.message}</div>`;
+            }
+        }
+
+        // Display people in table
+        function displayPeople(people) {
+            const listDiv = document.getElementById('peopleList');
+            
+            if (people.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state">No people found. Add your first person above!</div>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Birth Date</th>
+                            <th>Birth Place</th>
+                            <th>Gender</th>
+                            <th>Privacy</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            people.forEach(person => {
+                const fullName = `${person.given_name} ${person.family_name}`;
+                const birthDate = person.birth_date ? new Date(person.birth_date).toLocaleDateString() : 'N/A';
+                
+                html += `
+                    <tr>
+                        <td><strong>${fullName}</strong></td>
+                        <td>${birthDate}</td>
+                        <td>${person.birth_place || 'N/A'}</td>
+                        <td>${person.gender || 'N/A'}</td>
+                        <td>${person.privacy}</td>
+                        <td class="actions">
+                            <button onclick="viewPerson(${person.id})">View</button>
+                            <button onclick="editPerson(${person.id})">Edit</button>
+                            <button class="delete" onclick="deletePerson(${person.id}, '${fullName}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            listDiv.innerHTML = html;
+        }
+
+        // READ operation - View single person
+        async function viewPerson(id) {
+            try {
+                const response = await fetch(`${API_URL}/people/${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const person = result.data;
+                    const details = `
+Name: ${person.given_name} ${person.family_name}
+Other Names: ${person.other_names || 'N/A'}
+Gender: ${person.gender || 'N/A'}
+Birth Date: ${person.birth_date ? new Date(person.birth_date).toLocaleDateString() : 'N/A'}
+Death Date: ${person.death_date ? new Date(person.death_date).toLocaleDateString() : 'N/A'}
+Birth Place: ${person.birth_place || 'N/A'}
+Biography: ${person.bio || 'N/A'}
+Privacy: ${person.privacy}
+                    `;
+                    alert(details);
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        // UPDATE operation - Load person data into form
+        async function editPerson(id) {
+            try {
+                const response = await fetch(`${API_URL}/people/${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const person = result.data;
+                    editingId = id;
+                    
+                    document.getElementById('formTitle').textContent = 'Edit Person';
+                    document.getElementById('submitBtn').textContent = 'Update Person';
+                    document.getElementById('personId').value = id;
+                    document.getElementById('givenName').value = person.given_name;
+                    document.getElementById('familyName').value = person.family_name;
+                    document.getElementById('otherNames').value = person.other_names || '';
+                    document.getElementById('gender').value = person.gender || '';
+                    document.getElementById('birthDate').value = person.birth_date ? person.birth_date.split('T')[0] : '';
+                    document.getElementById('deathDate').value = person.death_date ? person.death_date.split('T')[0] : '';
+                    document.getElementById('birthPlace').value = person.birth_place || '';
+                    document.getElementById('bio').value = person.bio || '';
+                    document.getElementById('privacy').value = person.privacy;
+                    
+                    // Scroll to form
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        // UPDATE operation - Submit update
+        async function updatePerson(id, personData) {
+            try {
+                const response = await fetch(`${API_URL}/people/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(personData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Person updated successfully!', 'success');
+                    resetForm();
+                    loadPeople();
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        // DELETE operation
+        async function deletePerson(id, name) {
+            if (!confirm(`Are you sure you want to delete ${name}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/people/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Person deleted successfully!', 'success');
+                    loadPeople();
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        // Reset form to add mode
+        function resetForm() {
+            editingId = null;
+            document.getElementById('personForm').reset();
+            document.getElementById('formTitle').textContent = 'Add New Person';
+            document.getElementById('submitBtn').textContent = 'Add Person';
+            document.getElementById('personId').value = '';
+        }
+
+        // Show message to user
+        function showMessage(message, type) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.className = `message ${type}`;
+            messageBox.style.display = 'block';
+            
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

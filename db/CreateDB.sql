@@ -5,6 +5,7 @@ DECLARE @DbName        sysname        = N'demoDB';
 DECLARE @LoginName     sysname        = N'test';
 DECLARE @LoginPassword nvarchar(128)  = N'test@123';
 
+
 /* =========================================
    1. Create Database if NOT EXISTS
    ========================================= */
@@ -21,6 +22,7 @@ BEGIN
     PRINT 'Database ' + @DbName + ' already exists.';
 END;
 
+
 /* =========================================
    2. Create LOGIN (server-level) if NOT EXISTS
    ========================================= */
@@ -33,7 +35,7 @@ BEGIN
     DECLARE @sqlCreateLogin nvarchar(max) =
         N'CREATE LOGIN ' + QUOTENAME(@LoginName) +
         N' WITH PASSWORD = ' + QUOTENAME(@LoginPassword, '''') + N',
-           CHECK_POLICY = OFF;';  -- set ON if you want password policy
+           CHECK_POLICY = OFF;';
 
     PRINT 'Creating login ' + @LoginName;
     EXEC (@sqlCreateLogin);
@@ -43,14 +45,16 @@ BEGIN
     PRINT 'Login ' + @LoginName + ' already exists.';
 END;
 
+
 /* =========================================
-   3. Create USER in the database & Grant Access
-      - db_datareader : read all tables
-      - db_ddladmin   : create/alter/drop tables
+   3. Create USER in the database & Grant Permissions
+      - db_datareader : SELECT all tables
+      - db_datawriter : INSERT/UPDATE/DELETE all tables
    ========================================= */
 DECLARE @sqlUserAndPerms nvarchar(max) = N'
 USE ' + QUOTENAME(@DbName) + N';
 
+-- Create user if missing
 IF NOT EXISTS (
     SELECT 1
     FROM sys.database_principals
@@ -66,13 +70,13 @@ BEGIN
     PRINT ''User ' + @LoginName + ' already exists in database ' + @DbName + ''';
 END;
 
--- Grant read access to all tables
+-- Grant READ access (SELECT)
 ALTER ROLE db_datareader ADD MEMBER ' + QUOTENAME(@LoginName) + N';
 
--- Grant ability to create/alter/drop tables and other schema objects
-ALTER ROLE db_ddladmin   ADD MEMBER ' + QUOTENAME(@LoginName) + N';
+-- Grant WRITE access (INSERT/UPDATE/DELETE)
+ALTER ROLE db_datawriter ADD MEMBER ' + QUOTENAME(@LoginName) + N';
 ';
 
-PRINT 'Creating user and assigning permissions in database ' + @DbName;
+PRINT 'Assigning permissions in database ' + @DbName;
 EXEC (@sqlUserAndPerms);
 
