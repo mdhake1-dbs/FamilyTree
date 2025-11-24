@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated ansible playbook to install sqlserver prerequisites"
+git commit -m "Updated ansible playbook to Configure DB Setup"
 git branch -M main
 git push -u origin main
 

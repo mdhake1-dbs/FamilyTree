@@ -61,39 +61,6 @@
         groups: docker
         append: yes
 
-    - name: Pull app image from Docker Hub (if using public image)
-      docker_image:
-        name: "{{ app_image }}"
-        source: pull
-
-    - name: Run container
-      docker_container:
-        name: "{{ app_container_name }}"
-        image: "{{ app_image }}"
-        state: started
-        restart_policy: always
-        ports:
-          - "80:80"
-
-    - name: Schedule Docker container stop in 4 hours
-      ansible.builtin.shell: |
-        echo "docker stop {{ app_container_name }} && docker rm {{ app_container_name }}" | at now + 4 hours
-      args:
-        executable: /bin/bash
-      register: scheduled_stop
-      changed_when: "'job' in scheduled_stop.stdout or scheduled_stop.rc == 0"
-
-    - name: Check scheduled job status (optional) - RUN SHELL
-      ansible.builtin.shell: atq
-      register: at_jobs
-      changed_when: false
-
-    - name: Report scheduled job ID - DEBUG
-      ansible.builtin.debug:
-        msg: "Scheduled stop job created on instance. ID/Time: {{ at_jobs.stdout_lines }}"
-      delegate_to: localhost
-      run_once: true
-
     # -----------------------
     # Microsoft SQL Server install & config (Ubuntu focal)
     # -----------------------
@@ -203,4 +170,107 @@
     - name: Show verification message
       debug:
         msg: "dbadmin connection verified (SQL Server reachable)."
+        
+    # ----------------------------------------------------
+    # Copy & run DB scripts from repo/db on target machine
+    # ----------------------------------------------------
+
+    - name: Ensure remote SQL script directory exists
+      file:
+        path: /tmp/db_init
+        state: directory
+        mode: '0755'
+
+    - name: Gather SQL files from local db directory (sorted)
+      set_fact:
+        sql_files_local: "{{ lookup('fileglob', 'db/*.sql', wantlist=True) | sort }}"
+
+    - name: Copy SQL scripts to target (preserving order)
+      copy:
+        src: "{{ item }}"
+        dest: "/tmp/db_init/{{ item | basename }}"
+        mode: '0644'
+      loop: "{{ sql_files_local }}"
+
+    - name: List copied SQL files (debug)
+      debug:
+        msg: "Copied SQL file: /tmp/db_init/{{ item | basename }}"
+      loop: "{{ sql_files_local }}"
+      changed_when: false
+
+    - name: Run first script (create DB/login/user) as SA
+      # Assumes the first script is idempotent (IF NOT EXISTS checks)
+      shell: |
+        /usr/local/bin/sqlcmd -S localhost -U SA -P '{{ mssql_sa_password }}' -i /tmp/db_init/{{ sql_files_local[0] | basename }} -b
+      register: run_first
+      failed_when: run_first.rc != 0
+      no_log: true
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
+
+    - name: Run remaining scripts (schema / seed) as dbadmin
+      vars:
+        remaining_sqls: "{{ sql_files_local[1:] }}"
+      when: sql_files_local | length > 1
+      block:
+        - name: Execute SQL files one-by-one as dbadmin
+          shell: |
+            /usr/local/bin/sqlcmd -S localhost -U {{ dbadmin_user }} -P '{{ dbadmin_password }}' -d {{ target_db_name | default('demoDB') }} -i /tmp/db_init/{{ item | basename }} -b
+          loop: "{{ remaining_sqls }}"
+          register: run_remaining
+          failed_when: run_remaining.rc != 0
+          no_log: true
+          environment:
+            PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
+
+    - name: Verify People table exists (simple check)
+      shell: |
+        /usr/local/bin/sqlcmd -S localhost -U {{ dbadmin_user }} -P '{{ dbadmin_password }}' -d {{ target_db_name | default('demoDB') }} -Q "SET NOCOUNT ON; SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'People';"
+      register: verify_people
+      failed_when: verify_people.rc != 0 or "'1'" not in verify_people.stdout
+      changed_when: false
+      no_log: true
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
+
+    - name: Debug: DB initialization finished
+      debug:
+        msg: "DB init completed and People table verified."
+      changed_when: false
+      
+      
+    - name: Pull app image from Docker Hub (if using public image)
+      docker_image:
+        name: "{{ app_image }}"
+        source: pull
+
+    - name: Run container
+      docker_container:
+        name: "{{ app_container_name }}"
+        image: "{{ app_image }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "80:80"
+
+    - name: Schedule Docker container stop in 4 hours
+      ansible.builtin.shell: |
+        echo "docker stop {{ app_container_name }} && docker rm {{ app_container_name }}" | at now + 4 hours
+      args:
+        executable: /bin/bash
+      register: scheduled_stop
+      changed_when: "'job' in scheduled_stop.stdout or scheduled_stop.rc == 0"
+
+    - name: Check scheduled job status (optional) - RUN SHELL
+      ansible.builtin.shell: atq
+      register: at_jobs
+      changed_when: false
+
+    - name: Report scheduled job ID - DEBUG
+      ansible.builtin.debug:
+        msg: "Scheduled stop job created on instance. ID/Time: {{ at_jobs.stdout_lines }}"
+      delegate_to: localhost
+      run_once: true
+
+
 
