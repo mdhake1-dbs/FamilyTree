@@ -1,6 +1,18 @@
+---
 - name: Configure web VM
   hosts: web
   become: yes
+
+  # -- variables (change these before running)
+  vars:
+    # NOTE: you asked to skip Ansible Vault for now; change these values as required.
+    mssql_sa_password: "YourStrong!SApwd"   # SA password used only during initial SQL Server setup
+    dbadmin_user: "dbadmin"
+    dbadmin_password: "Admin@123"
+    # Docker image and app container name
+    app_image: "mdhake1dbs/demo-app"
+    app_container_name: "demo-app"
+
   tasks:
     - name: Update apt cache
       apt:
@@ -24,7 +36,7 @@
       apt_repository:
         repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
         state: present
-          
+
     - name: Install 'at' utility for container scheduling
       ansible.builtin.apt:
         name: at
@@ -51,13 +63,13 @@
 
     - name: Pull app image from Docker Hub (if using public image)
       docker_image:
-        name: mdhake1dbs/demo-app
+        name: "{{ app_image }}"
         source: pull
 
     - name: Run container
       docker_container:
-        name: demo-app
-        image: mdhake1dbs/demo-app
+        name: "{{ app_container_name }}"
+        image: "{{ app_image }}"
         state: started
         restart_policy: always
         ports:
@@ -65,10 +77,11 @@
 
     - name: Schedule Docker container stop in 4 hours
       ansible.builtin.shell: |
-        echo "docker stop demo-app && docker rm demo-app" | at now + 4 hours
+        echo "docker stop {{ app_container_name }} && docker rm {{ app_container_name }}" | at now + 4 hours
       args:
-        executable: /bin/bash # Use bash for the 'at' command
-          # This task should run only after the 'Run container' task
+        executable: /bin/bash
+      register: scheduled_stop
+      changed_when: "'job' in scheduled_stop.stdout or scheduled_stop.rc == 0"
 
     - name: Check scheduled job status (optional) - RUN SHELL
       ansible.builtin.shell: atq
@@ -80,3 +93,114 @@
         msg: "Scheduled stop job created on instance. ID/Time: {{ at_jobs.stdout_lines }}"
       delegate_to: localhost
       run_once: true
+
+    # -----------------------
+    # Microsoft SQL Server install & config (Ubuntu focal)
+    # -----------------------
+
+    - name: Add Microsoft repository GPG key
+      apt_key:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+
+    - name: Add Microsoft SQL Server repository for Ubuntu focal
+      apt_repository:
+        repo: deb [arch=amd64] https://packages.microsoft.com/ubuntu/20.04/mssql-server-2019 focal main
+        state: present
+        filename: 'mssql-server-2019'
+
+    - name: Add Microsoft tools repository (for mssql-tools)
+      apt_repository:
+        repo: deb [arch=amd64] https://packages.microsoft.com/ubuntu/20.04/prod focal main
+        state: present
+        filename: 'msprod'
+
+    - name: Update apt cache after adding MS repos
+      apt:
+        update_cache: yes
+
+    - name: Install SQL Server package (mssql-server)
+      apt:
+        name: mssql-server
+        state: present
+
+    - name: Run mssql-conf non-interactive setup (configure SA password & accept EULA)
+      shell: |
+        MSSQL_SA_PASSWORD='{{ mssql_sa_password }}' MSSQL_PID='Developer' /opt/mssql/bin/mssql-conf -n setup
+      args:
+        creates: /var/opt/mssql/bin/sqlservr
+      register: mssql_setup
+      no_log: true
+
+    - name: Ensure mssql service is enabled and started
+      systemd:
+        name: mssql-server
+        enabled: yes
+        state: started
+
+    - name: Wait for SQL Server to accept connections (retry)
+      wait_for:
+        host: 127.0.0.1
+        port: 1433
+        delay: 5
+        timeout: 120
+        state: started
+
+    - name: Install mssql-tools and unixodbc-dev (sqlcmd)
+      apt:
+        name:
+          - mssql-tools
+          - unixodbc-dev
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Add /opt/mssql-tools/bin to PATH permanently via /etc/profile.d
+      copy:
+        dest: /etc/profile.d/mssql-tools.sh
+        content: |
+          # Added by Ansible: include mssql-tools in PATH
+          if [ -d /opt/mssql-tools/bin ]; then
+            export PATH="$PATH:/opt/mssql-tools/bin"
+          fi
+        mode: '0644'
+
+    - name: Create symlink for sqlcmd so it's immediately available in non-login shells
+      file:
+        src: /opt/mssql-tools/bin/sqlcmd
+        dest: /usr/local/bin/sqlcmd
+        state: link
+        force: yes
+      become: yes
+
+    - name: Ensure symlink is executable (just in case)
+      file:
+        path: /usr/local/bin/sqlcmd
+        mode: '0755'
+
+    - name: Create sysadmin login 'dbadmin' and make it sysadmin (using SA)
+      shell: |
+        /usr/local/bin/sqlcmd -S localhost -U SA -P '{{ mssql_sa_password }}' -Q "IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{{ dbadmin_user }}')
+        BEGIN
+            CREATE LOGIN {{ dbadmin_user }} WITH PASSWORD = N'{{ dbadmin_password }}';
+            ALTER SERVER ROLE [sysadmin] ADD MEMBER {{ dbadmin_user }};
+        END"
+      register: create_dbadmin
+      no_log: true
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
+
+    - name: Verify dbadmin can connect (quick check)
+      shell: |
+        /usr/local/bin/sqlcmd -S localhost -U {{ dbadmin_user }} -P '{{ dbadmin_password }}' -Q "SELECT SUSER_SNAME();"
+      register: verify_dbadmin
+      failed_when: verify_dbadmin.rc != 0
+      changed_when: false
+      no_log: true
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
+
+    - name: Show verification message
+      debug:
+        msg: "dbadmin connection verified (SQL Server reachable)."
+
