@@ -1,53 +1,54 @@
 ---
-- name: Configure web VM
+- name: Configure web VM (SQLite + build app image)
   hosts: web
   become: yes
-
-  # -- variables (change these before running)
   vars:
-    # NOTE: you asked to skip Ansible Vault for now; change these values as required.
-    mssql_sa_password: "YourStrong!SApwd"   # SA password used only during initial SQL Server setup
-    dbadmin_user: "dbadmin"
-    dbadmin_password: "Admin@123"
-    # Docker image and app container name
-    app_image: "mdhake1dbs/demo-app"
-    app_container_name: "demo-app"
+    app_image: "familytree:latest"
+    app_container_name: "familytreevault"
+    target_db_name: "demoDB.sqlite"
+    db_data_dir: "/var/lib/{{ app_container_name }}/data"
+    app_remote_path: "/home/ubuntu/app"
+    container_user_uid: 1000                     # numeric UID for container user
+    container_user_name: "ubuntu"                # owner/group used on host filesystem
+    http_port: 80
 
   tasks:
     - name: Update apt cache
       apt:
         update_cache: yes
+        cache_valid_time: 3600
 
-    - name: Install prerequisites
+    - name: Install common prerequisites
       apt:
         name:
           - apt-transport-https
           - ca-certificates
           - curl
           - software-properties-common
+          - gnupg
+          - lsb-release
+          - python3-pip
         state: present
+        update_cache: yes
 
     - name: Add Docker GPG key
       apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
+        url: "https://download.docker.com/linux/ubuntu/gpg"
         state: present
 
-    - name: Add Docker repo
+    - name: Add Docker repo (Ubuntu-specific)
       apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
         state: present
 
-    - name: Install 'at' utility for container scheduling
-      ansible.builtin.apt:
-        name: at
-        state: present
-        update_cache: yes
-
-    - name: Install Docker
+    - name: Install Docker packages
       apt:
-        name: docker-ce
-        update_cache: yes
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
         state: latest
+        update_cache: yes
 
     - name: Ensure docker service is enabled and started
       systemd:
@@ -57,123 +58,25 @@
 
     - name: Add ubuntu user to docker group
       user:
-        name: ubuntu
+        name: "{{ container_user_name }}"
         groups: docker
         append: yes
 
-    # -----------------------
-    # Microsoft SQL Server install & config (Ubuntu focal)
-    # -----------------------
-
-    - name: Add Microsoft repository GPG key
-      apt_key:
-        url: https://packages.microsoft.com/keys/microsoft.asc
-        state: present
-
-    - name: Add Microsoft SQL Server repository for Ubuntu focal
-      apt_repository:
-        repo: deb [arch=amd64] https://packages.microsoft.com/ubuntu/20.04/mssql-server-2019 focal main
-        state: present
-        filename: 'mssql-server-2019'
-
-    - name: Add Microsoft tools repository (for mssql-tools)
-      apt_repository:
-        repo: deb [arch=amd64] https://packages.microsoft.com/ubuntu/20.04/prod focal main
-        state: present
-        filename: 'msprod'
-
-    - name: Update apt cache after adding MS repos
-      apt:
-        update_cache: yes
-
-    - name: Install SQL Server package (mssql-server)
-      apt:
-        name: mssql-server
-        state: present
-
-    - name: Run mssql-conf non-interactive setup (configure SA password & accept EULA)
-      shell: |
-        MSSQL_SA_PASSWORD='{{ mssql_sa_password }}' MSSQL_PID='Developer' /opt/mssql/bin/mssql-conf -n setup
-      args:
-        creates: /var/opt/mssql/bin/sqlservr
-      register: mssql_setup
-      no_log: true
-
-    - name: Ensure mssql service is enabled and started
-      systemd:
-        name: mssql-server
-        enabled: yes
-        state: started
-
-    - name: Wait for SQL Server to accept connections (retry)
-      wait_for:
-        host: 127.0.0.1
-        port: 1433
-        delay: 5
-        timeout: 120
-        state: started
-
-    - name: Install mssql-tools and unixodbc-dev (sqlcmd)
+    - name: Install sqlite3 and dev packages
       apt:
         name:
-          - mssql-tools
-          - unixodbc-dev
+          - sqlite3
+          - libsqlite3-dev
         state: present
-      environment:
-        DEBIAN_FRONTEND: noninteractive
+        update_cache: yes
 
-    - name: Add /opt/mssql-tools/bin to PATH permanently via /etc/profile.d
-      copy:
-        dest: /etc/profile.d/mssql-tools.sh
-        content: |
-          # Added by Ansible: include mssql-tools in PATH
-          if [ -d /opt/mssql-tools/bin ]; then
-            export PATH="$PATH:/opt/mssql-tools/bin"
-          fi
-        mode: '0644'
-
-    - name: Create symlink for sqlcmd so it's immediately available in non-login shells
+    - name: Ensure DB data directory exists (for container mount)
       file:
-        src: /opt/mssql-tools/bin/sqlcmd
-        dest: /usr/local/bin/sqlcmd
-        state: link
-        force: yes
-      become: yes
-
-    - name: Ensure symlink is executable (just in case)
-      file:
-        path: /usr/local/bin/sqlcmd
+        path: "{{ db_data_dir }}"
+        state: directory
+        owner: "{{ container_user_name }}"
+        group: "{{ container_user_name }}"
         mode: '0755'
-
-    - name: Create sysadmin login 'dbadmin' and make it sysadmin (using SA)
-      shell: |
-        /usr/local/bin/sqlcmd -S localhost -U SA -P '{{ mssql_sa_password }}' -Q "IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{{ dbadmin_user }}')
-        BEGIN
-            CREATE LOGIN {{ dbadmin_user }} WITH PASSWORD = N'{{ dbadmin_password }}';
-            ALTER SERVER ROLE [sysadmin] ADD MEMBER {{ dbadmin_user }};
-        END"
-      register: create_dbadmin
-      no_log: true
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
-
-    - name: Verify dbadmin can connect (quick check)
-      shell: |
-        /usr/local/bin/sqlcmd -S localhost -U {{ dbadmin_user }} -P '{{ dbadmin_password }}' -Q "SELECT SUSER_SNAME();"
-      register: verify_dbadmin
-      failed_when: verify_dbadmin.rc != 0
-      changed_when: false
-      no_log: true
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
-
-    - name: Show verification message
-      debug:
-        msg: "dbadmin connection verified (SQL Server reachable)."
-        
-    # ----------------------------------------------------
-    # Copy & run DB scripts from repo/db on target machine
-    # ----------------------------------------------------
 
     - name: Ensure remote SQL script directory exists
       file:
@@ -183,94 +86,119 @@
 
     - name: Gather SQL files from local db directory (sorted)
       set_fact:
-        sql_files_local: "{{ lookup('fileglob', 'db/*.sql', wantlist=True) | sort }}"
+        sql_files_local: "{{ lookup('fileglob', playbook_dir + '/../db/*.sql', wantlist=True) | sort }}"
+      # result will be [] if no files found
 
-    - name: Copy SQL scripts to target (preserving order)
+    - name: Debug: list SQL files found
+      debug:
+        msg: "SQL files (local): {{ sql_files_local | default([]) }}"
+      changed_when: false
+
+    - name: Copy SQL scripts to target (preserving order) (if any)
       copy:
         src: "{{ item }}"
         dest: "/tmp/db_init/{{ item | basename }}"
         mode: '0644'
-      loop: "{{ sql_files_local }}"
+      loop: "{{ sql_files_local | default([]) }}"
+      when: sql_files_local | length > 0
 
-    - name: List copied SQL files (debug)
-      debug:
-        msg: "Copied SQL file: /tmp/db_init/{{ item | basename }}"
-      loop: "{{ sql_files_local }}"
-      changed_when: false
-
-    - name: Run first script (create DB/login/user) as SA
-      # Assumes the first script is idempotent (IF NOT EXISTS checks)
+    - name: Create SQLite DB file from first script if missing (schema)
       shell: |
-        /usr/local/bin/sqlcmd -S localhost -U SA -P '{{ mssql_sa_password }}' -i /tmp/db_init/{{ sql_files_local[0] | basename }} -b
-      register: run_first
-      failed_when: run_first.rc != 0
-      no_log: true
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
+        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" < "/tmp/db_init/{{ sql_files_local[0] | basename }}"
+      args:
+        creates: "{{ db_data_dir }}/{{ target_db_name }}"
+      when: sql_files_local | length > 0
 
-    - name: Run remaining scripts (schema / seed) as dbadmin
-      vars:
-        remaining_sqls: "{{ sql_files_local[1:] }}"
+    - name: Run remaining SQL scripts against SQLite DB (if any)
+      shell: |
+        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" < "/tmp/db_init/{{ item | basename }}"
+      loop: "{{ sql_files_local[1:] | default([]) }}"
       when: sql_files_local | length > 1
-      block:
-        - name: Execute SQL files one-by-one as dbadmin
-          shell: |
-            /usr/local/bin/sqlcmd -S localhost -U {{ dbadmin_user }} -P '{{ dbadmin_password }}' -d {{ target_db_name | default('demoDB') }} -i /tmp/db_init/{{ item | basename }} -b
-          loop: "{{ remaining_sqls }}"
-          register: run_remaining
-          failed_when: run_remaining.rc != 0
-          no_log: true
-          environment:
-            PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
 
-    - name: Verify People table exists (simple check)
+    - name: Ensure SQLite DB file exists (touch) - safe fallback when no SQL provided
+      file:
+        path: "{{ db_data_dir }}/{{ target_db_name }}"
+        state: touch
+        owner: "{{ container_user_name }}"
+        group: "{{ container_user_name }}"
+        mode: '0644'
+
+    - name: Ensure DB file ownership and permissions
+      file:
+        path: "{{ db_data_dir }}/{{ target_db_name }}"
+        owner: "{{ container_user_name }}"
+        group: "{{ container_user_name }}"
+        mode: '0644'
+
+    - name: Verify 'People' table exists in SQLite DB (only if SQL was applied)
       shell: |
-        /usr/local/bin/sqlcmd -S localhost -U {{ dbadmin_user }} -P '{{ dbadmin_password }}' -d {{ target_db_name | default('demoDB') }} -Q "SET NOCOUNT ON; SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'People';"
-      register: verify_people
-      failed_when: verify_people.rc != 0 or "'1'" not in verify_people.stdout
+        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" "SELECT name FROM sqlite_master WHERE type='table' AND name='People';"
+      register: verify_people_table
       changed_when: false
-      no_log: true
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/opt/mssql-tools/bin"
+      failed_when:
+        - verify_people_table.stdout | trim != 'People'
+      when: sql_files_local | length > 0
 
-    - name: Debug: DB initialization finished
+    - name: Debug: DB init finished
       debug:
-        msg: "DB init completed and People table verified."
+        msg:
+          - "DB init completed (SQLite file: {{ db_data_dir }}/{{ target_db_name }})."
+          - "Executed {{ sql_files_local | length | default(0) }} script(s)."
       changed_when: false
-      
-      
-    - name: Pull app image from Docker Hub (if using public image)
-      docker_image:
-        name: "{{ app_image }}"
-        source: pull
 
-    - name: Run container
+    - name: Copy app directory to remote host (exclude runtime data)
+      copy:
+        src: "{{ playbook_dir }}/../app/"
+        dest: "{{ app_remote_path }}/"
+        mode: '0755'
+        owner: "{{ container_user_name }}"
+        group: "{{ container_user_name }}"
+        recurse: yes
+        exclude:
+          - "backend/data"
+      # If you prefer rsync, replace with "synchronize" (requires rsync on both machines)
+
+    - name: Build Docker image from app folder
+      shell: docker build -t {{ app_image }} {{ app_remote_path }}
+      args:
+        chdir: "{{ app_remote_path }}"
+      register: docker_build
+      failed_when: docker_build.rc != 0
+
+    - name: Ensure old container removed (if exists)
+      docker_container:
+        name: "{{ app_container_name }}"
+        state: absent
+        force_kill: yes
+      ignore_errors: yes
+
+    - name: Run container (mount DB dir, set env)
       docker_container:
         name: "{{ app_container_name }}"
         image: "{{ app_image }}"
         state: started
         restart_policy: always
         ports:
-          - "80:80"
+          - "{{ http_port }}:80"
+        volumes:
+          - "{{ db_data_dir }}:/app/data"
+        env:
+          SQLITE_DB_PATH: "/app/data/{{ target_db_name }}"
+        user: "{{ container_user_uid }}:{{ container_user_uid }}"
+        detach: true
 
-    - name: Schedule Docker container stop in 4 hours
-      ansible.builtin.shell: |
-        echo "docker stop {{ app_container_name }} && docker rm {{ app_container_name }}" | at now + 4 hours
-      args:
-        executable: /bin/bash
-      register: scheduled_stop
-      changed_when: "'job' in scheduled_stop.stdout or scheduled_stop.rc == 0"
+    - name: Wait for app to respond on HTTP (delegated to remote host)
+      uri:
+        url: "http://127.0.0.1:{{ http_port }}/api/health"
+        status_code: 200
+        return_content: yes
+      register: healthcheck
+      retries: 10
+      delay: 5
+      until: healthcheck.status == 200
+      delegate_to: "{{ inventory_hostname }}"
 
-    - name: Check scheduled job status (optional) - RUN SHELL
-      ansible.builtin.shell: atq
-      register: at_jobs
-      changed_when: false
-
-    - name: Report scheduled job ID - DEBUG
-      ansible.builtin.debug:
-        msg: "Scheduled stop job created on instance. ID/Time: {{ at_jobs.stdout_lines }}"
-      delegate_to: localhost
-      run_once: true
-
-
+    - name: Show app health output
+      debug:
+        msg: "{{ healthcheck.content }}"
 

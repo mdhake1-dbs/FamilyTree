@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-import sqlite3
+import pyodbc
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -11,28 +11,24 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Path to SQLite DB file (container should mount host dir to /app/data)
-DB_PATH = os.getenv('SQLITE_DB_PATH', os.path.join(os.getcwd(), 'data', 'demo.db'))
+DB_CONFIG = {
+    'server': os.getenv('DB_SERVER', 'localhost'),
+    'database': os.getenv('DB_NAME', 'demoDB'),
+    'username': os.getenv('DB_USER', 'test'),
+    'password': os.getenv('DB_PASSWORD', 'test@123'),
+    'driver': '{ODBC Driver 17 for SQL Server}'
+}
 
 def get_db_connection():
-    """Return a sqlite3 connection (row factory = sqlite3.Row)."""
-    conn = getattr(g, '_sqlite_conn', None)
-    if conn is None:
-        # allow multi-threaded access for WSGI servers
-        conn = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        # Recommended pragmas for correctness/concurrency
-        conn.execute('PRAGMA foreign_keys = ON;')
-        conn.execute('PRAGMA journal_mode = WAL;')
-        conn.execute('PRAGMA synchronous = NORMAL;')
-        g._sqlite_conn = conn
-    return conn
-
-@app.teardown_appcontext
-def close_db_connection(exception):
-    conn = getattr(g, '_sqlite_conn', None)
-    if conn is not None:
-        conn.close()
+    """Create and return database connection"""
+    conn_str = (
+        f"DRIVER={DB_CONFIG['driver']};"
+        f"SERVER={DB_CONFIG['server']};"
+        f"DATABASE={DB_CONFIG['database']};"
+        f"UID={DB_CONFIG['username']};"
+        f"PWD={DB_CONFIG['password']}"
+    )
+    return pyodbc.connect(conn_str)
 
 # ============= CRUD ENDPOINTS FOR PEOPLE =============
 
@@ -44,25 +40,26 @@ def get_all_people():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, given_name, family_name, other_names, gender,
+            SELECT id, given_name, family_name, other_names, gender, 
                    birth_date, death_date, birth_place, bio, privacy,
                    created_at, updated_at
-            FROM People
+            FROM People 
             WHERE is_deleted = 0
             ORDER BY family_name, given_name
         """)
 
-        rows = cursor.fetchall()
+        columns = [column[0] for column in cursor.description]
         people = []
-        for row in rows:
-            person = dict(row)
-            # Ensure date fields are strings (they should already be ISO strings)
+
+        for row in cursor.fetchall():
+            person = dict(zip(columns, row))
+            # Convert datetime objects to strings
             for key in ['birth_date', 'death_date', 'created_at', 'updated_at']:
-                if person.get(key) is not None:
-                    # leave as-is (assume ISO string); if stored as datetime, convert
-                    person[key] = person[key]
+                if person[key]:
+                    person[key] = person[key].isoformat()
             people.append(person)
 
+        conn.close()
         return jsonify({'success': True, 'data': people}), 200
 
     except Exception as e:
@@ -76,22 +73,26 @@ def get_person(person_id):
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, given_name, family_name, other_names, gender,
+            SELECT id, given_name, family_name, other_names, gender, 
                    birth_date, death_date, birth_place, bio, privacy,
                    created_at, updated_at
-            FROM People
+            FROM People 
             WHERE id = ? AND is_deleted = 0
-        """, (person_id,))
+        """, person_id)
 
         row = cursor.fetchone()
 
         if row:
-            person = dict(row)
+            columns = [column[0] for column in cursor.description]
+            person = dict(zip(columns, row))
+            # Convert datetime objects to strings
             for key in ['birth_date', 'death_date', 'created_at', 'updated_at']:
-                if person.get(key) is not None:
-                    person[key] = person[key]
+                if person[key]:
+                    person[key] = person[key].isoformat()
+            conn.close()
             return jsonify({'success': True, 'data': person}), 200
         else:
+            conn.close()
             return jsonify({'success': False, 'error': 'Person not found'}), 404
 
     except Exception as e:
@@ -101,26 +102,26 @@ def get_person(person_id):
 def create_person():
     """Create a new person (CREATE)"""
     try:
-        data = request.get_json() or {}
+        data = request.get_json()
 
         # Validate required fields
         if not data.get('given_name') or not data.get('family_name'):
             return jsonify({
-                'success': False,
+                'success': False, 
                 'error': 'Given name and family name are required'
             }), 400
 
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        now_iso = datetime.now().isoformat()
-
         cursor.execute("""
             INSERT INTO People (
                 given_name, family_name, other_names, gender,
                 birth_date, death_date, birth_place, bio, privacy,
                 created_at, updated_at, is_deleted
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            ) 
+            OUTPUT INSERTED.id
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
         """, (
             data.get('given_name'),
             data.get('family_name'),
@@ -131,15 +132,16 @@ def create_person():
             data.get('birth_place'),
             data.get('bio'),
             data.get('privacy', 'private'),
-            now_iso,
-            now_iso
+            datetime.now(),
+            datetime.now()
         ))
 
-        new_id = cursor.lastrowid
+        new_id = cursor.fetchone()[0]
         conn.commit()
+        conn.close()
 
         return jsonify({
-            'success': True,
+            'success': True, 
             'message': 'Person created successfully',
             'id': int(new_id)
         }), 201
@@ -151,17 +153,16 @@ def create_person():
 def update_person(person_id):
     """Update an existing person (UPDATE)"""
     try:
-        data = request.get_json() or {}
+        data = request.get_json()
 
         conn = get_db_connection()
         cursor = conn.cursor()
 
         # Check if person exists
-        cursor.execute("SELECT id FROM People WHERE id = ? AND is_deleted = 0", (person_id,))
+        cursor.execute("SELECT id FROM People WHERE id = ? AND is_deleted = 0", person_id)
         if not cursor.fetchone():
+            conn.close()
             return jsonify({'success': False, 'error': 'Person not found'}), 404
-
-        now_iso = datetime.now().isoformat()
 
         cursor.execute("""
             UPDATE People SET
@@ -186,14 +187,15 @@ def update_person(person_id):
             data.get('birth_place'),
             data.get('bio'),
             data.get('privacy'),
-            now_iso,
+            datetime.now(),
             person_id
         ))
 
         conn.commit()
+        conn.close()
 
         return jsonify({
-            'success': True,
+            'success': True, 
             'message': 'Person updated successfully'
         }), 200
 
@@ -208,23 +210,23 @@ def delete_person(person_id):
         cursor = conn.cursor()
 
         # Check if person exists
-        cursor.execute("SELECT id FROM People WHERE id = ? AND is_deleted = 0", (person_id,))
+        cursor.execute("SELECT id FROM People WHERE id = ? AND is_deleted = 0", person_id)
         if not cursor.fetchone():
+            conn.close()
             return jsonify({'success': False, 'error': 'Person not found'}), 404
-
-        now_iso = datetime.now().isoformat()
 
         # Soft delete
         cursor.execute("""
-            UPDATE People
+            UPDATE People 
             SET is_deleted = 1, updated_at = ?
             WHERE id = ?
-        """, (now_iso, person_id))
+        """, (datetime.now(), person_id))
 
         conn.commit()
+        conn.close()
 
         return jsonify({
-            'success': True,
+            'success': True, 
             'message': 'Person deleted successfully'
         }), 200
 
@@ -237,31 +239,20 @@ def delete_person(person_id):
 def health_check():
     """API health check endpoint"""
     try:
-        # Simple check: ensure we can open the DB file and run a trivial query
         conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1;")
-        cursor.fetchone()
+        conn.close()
         return jsonify({
-            'success': True,
+            'success': True, 
             'message': 'API is running',
-            'database': 'connected',
-            'db_path': DB_PATH
+            'database': 'connected'
         }), 200
     except Exception as e:
         return jsonify({
-            'success': False,
+            'success': False, 
             'message': 'API is running',
             'database': 'disconnected',
-            'error': str(e),
-            'db_path': DB_PATH
+            'error': str(e)
         }), 500
 
 if __name__ == '__main__':
-    # Ensure the containing directory exists (helpful when running locally)
-    db_dir = os.path.dirname(DB_PATH)
-    if db_dir and not os.path.exists(db_dir):
-        os.makedirs(db_dir, exist_ok=True)
-
     app.run(debug=True, host='0.0.0.0', port=5000)
-
