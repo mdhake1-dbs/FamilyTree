@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated Ansible Now the deployment is successfull but backend conectivity breaks"
+git commit -m "Deployment successfull All API Working Fine"
 git branch -M main
 git push -u origin main
 
