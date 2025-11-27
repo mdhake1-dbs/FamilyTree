@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from flask import Flask, request, jsonify, g
+from flask import send_from_directory
 from flask_cors import CORS
 import sqlite3
 from datetime import datetime
@@ -256,6 +257,18 @@ def health_check():
             'error': str(e),
             'db_path': DB_PATH
         }), 500
+        
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    """
+    Serve the compiled frontend files (SPA). Place index.html and assets into FRONTEND_DIR.
+    """
+    FRONTEND_DIR = os.path.join(os.getcwd(), 'frontend')  # adjust if your frontend path differs
+    if path != "" and os.path.exists(os.path.join(FRONTEND_DIR, path)):
+        return send_from_directory(FRONTEND_DIR, path)
+    # otherwise return index.html for client-side routing
+    return send_from_directory(FRONTEND_DIR, 'index.html')
 
 if __name__ == '__main__':
     # Ensure the containing directory exists (helpful when running locally)

@@ -1,5 +1,5 @@
 ---
-- name: Configure web VM (SQLite + build app image)
+- name: "Configure web VM (SQLite + build app image)"
   hosts: web
   become: yes
   vars:
@@ -8,17 +8,17 @@
     target_db_name: "demoDB.sqlite"
     db_data_dir: "/var/lib/{{ app_container_name }}/data"
     app_remote_path: "/home/ubuntu/app"
-    container_user_uid: 1000                     # numeric UID for container user
-    container_user_name: "ubuntu"                # owner/group used on host filesystem
+    container_user_uid: 1000
+    container_user_name: "ubuntu"
     http_port: 80
 
   tasks:
-    - name: Update apt cache
+    - name: "Update apt cache"
       apt:
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Install common prerequisites
+    - name: "Install common prerequisites"
       apt:
         name:
           - apt-transport-https
@@ -28,20 +28,21 @@
           - gnupg
           - lsb-release
           - python3-pip
+          - rsync                     # ensure rsync present on remote (required by synchronize)
         state: present
         update_cache: yes
 
-    - name: Add Docker GPG key
+    - name: "Add Docker GPG key"
       apt_key:
         url: "https://download.docker.com/linux/ubuntu/gpg"
         state: present
 
-    - name: Add Docker repo (Ubuntu-specific)
+    - name: "Add Docker repo (Ubuntu-specific)"
       apt_repository:
         repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
         state: present
 
-    - name: Install Docker packages
+    - name: "Install Docker packages"
       apt:
         name:
           - docker-ce
@@ -50,19 +51,19 @@
         state: latest
         update_cache: yes
 
-    - name: Ensure docker service is enabled and started
+    - name: "Ensure docker service is enabled and started"
       systemd:
         name: docker
         enabled: yes
         state: started
 
-    - name: Add ubuntu user to docker group
+    - name: "Add ubuntu user to docker group"
       user:
         name: "{{ container_user_name }}"
         groups: docker
         append: yes
 
-    - name: Install sqlite3 and dev packages
+    - name: "Install sqlite3 and dev packages"
       apt:
         name:
           - sqlite3
@@ -70,7 +71,7 @@
         state: present
         update_cache: yes
 
-    - name: Ensure DB data directory exists (for container mount)
+    - name: "Ensure DB data directory exists (for container mount)"
       file:
         path: "{{ db_data_dir }}"
         state: directory
@@ -78,23 +79,22 @@
         group: "{{ container_user_name }}"
         mode: '0755'
 
-    - name: Ensure remote SQL script directory exists
+    - name: "Ensure remote SQL script directory exists"
       file:
         path: /tmp/db_init
         state: directory
         mode: '0755'
 
-    - name: Gather SQL files from local db directory (sorted)
+    - name: "Gather SQL files from local db directory (sorted)"
       set_fact:
         sql_files_local: "{{ lookup('fileglob', playbook_dir + '/../db/*.sql', wantlist=True) | sort }}"
-      # result will be [] if no files found
 
-    - name: Debug: list SQL files found
+    - name: "Debug: list SQL files found"
       debug:
         msg: "SQL files (local): {{ sql_files_local | default([]) }}"
       changed_when: false
 
-    - name: Copy SQL scripts to target (preserving order) (if any)
+    - name: "Copy SQL scripts to target (preserving order) (if any)"
       copy:
         src: "{{ item }}"
         dest: "/tmp/db_init/{{ item | basename }}"
@@ -102,20 +102,20 @@
       loop: "{{ sql_files_local | default([]) }}"
       when: sql_files_local | length > 0
 
-    - name: Create SQLite DB file from first script if missing (schema)
+    - name: "Create SQLite DB file from first script if missing (schema)"
       shell: |
         sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" < "/tmp/db_init/{{ sql_files_local[0] | basename }}"
       args:
         creates: "{{ db_data_dir }}/{{ target_db_name }}"
       when: sql_files_local | length > 0
 
-    - name: Run remaining SQL scripts against SQLite DB (if any)
+    - name: "Run remaining SQL scripts against SQLite DB (if any)"
       shell: |
         sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" < "/tmp/db_init/{{ item | basename }}"
       loop: "{{ sql_files_local[1:] | default([]) }}"
       when: sql_files_local | length > 1
 
-    - name: Ensure SQLite DB file exists (touch) - safe fallback when no SQL provided
+    - name: "Ensure SQLite DB file exists (touch) - safe fallback when no SQL provided"
       file:
         path: "{{ db_data_dir }}/{{ target_db_name }}"
         state: touch
@@ -123,14 +123,14 @@
         group: "{{ container_user_name }}"
         mode: '0644'
 
-    - name: Ensure DB file ownership and permissions
+    - name: "Ensure DB file ownership and permissions"
       file:
         path: "{{ db_data_dir }}/{{ target_db_name }}"
         owner: "{{ container_user_name }}"
         group: "{{ container_user_name }}"
         mode: '0644'
 
-    - name: Verify 'People' table exists in SQLite DB (only if SQL was applied)
+    - name: "Verify 'People' table exists in SQLite DB (only if SQL was applied)"
       shell: |
         sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" "SELECT name FROM sqlite_master WHERE type='table' AND name='People';"
       register: verify_people_table
@@ -139,40 +139,60 @@
         - verify_people_table.stdout | trim != 'People'
       when: sql_files_local | length > 0
 
-    - name: Debug: DB init finished
+    - name: "Debug: DB init finished"
       debug:
         msg:
           - "DB init completed (SQLite file: {{ db_data_dir }}/{{ target_db_name }})."
           - "Executed {{ sql_files_local | length | default(0) }} script(s)."
       changed_when: false
 
-    - name: Copy app directory to remote host (exclude runtime data)
-      copy:
-        src: "{{ playbook_dir }}/../app/"
-        dest: "{{ app_remote_path }}/"
-        mode: '0755'
+    # -----------------------
+    # COPY/DEPLOY APP CODE -> use rsync (synchronize) instead of copy with recurse/exclude
+    # -----------------------
+
+    - name: "Ensure parent directory for app_remote_path exists"
+      file:
+        path: "{{ app_remote_path | dirname }}"
+        state: directory
         owner: "{{ container_user_name }}"
         group: "{{ container_user_name }}"
-        recurse: yes
-        exclude:
-          - "backend/data"
-      # If you prefer rsync, replace with "synchronize" (requires rsync on both machines)
+        mode: '0755'
 
-    - name: Build Docker image from app folder
-      shell: docker build -t {{ app_image }} {{ app_remote_path }}
+    - name: "Synchronize app/ -> remote (excludes runtime data)"
+      synchronize:
+        src: "{{ playbook_dir }}/../app/"
+        dest: "{{ app_remote_path }}/"
+        archive: yes
+        delete: no
+        rsync_opts:
+          - "--exclude=backend/data"
+      # note: synchronize uses rsync on controller and remote. Controller must have rsync installed.
+
+    - name: "Fix ownership of deployed app files"
+      file:
+        path: "{{ app_remote_path }}"
+        state: directory
+        recurse: yes
+        owner: "{{ container_user_name }}"
+        group: "{{ container_user_name }}"
+        mode: '0755'
+
+    - name: "Build Docker image from app folder"
+      shell: |
+        docker build -t {{ app_image }} {{ app_remote_path }}
       args:
         chdir: "{{ app_remote_path }}"
       register: docker_build
       failed_when: docker_build.rc != 0
 
-    - name: Ensure old container removed (if exists)
+    - name: "Ensure old container removed (if exists)"
       docker_container:
         name: "{{ app_container_name }}"
         state: absent
         force_kill: yes
       ignore_errors: yes
 
-    - name: Run container (mount DB dir, set env)
+    - name: "Run container (mount DB dir, set env)"
       docker_container:
         name: "{{ app_container_name }}"
         image: "{{ app_image }}"
@@ -187,7 +207,7 @@
         user: "{{ container_user_uid }}:{{ container_user_uid }}"
         detach: true
 
-    - name: Wait for app to respond on HTTP (delegated to remote host)
+    - name: "Wait for app to respond on HTTP (delegated to remote host)"
       uri:
         url: "http://127.0.0.1:{{ http_port }}/api/health"
         status_code: 200
@@ -198,7 +218,7 @@
       until: healthcheck.status == 200
       delegate_to: "{{ inventory_hostname }}"
 
-    - name: Show app health output
+    - name: "Show app health output"
       debug:
         msg: "{{ healthcheck.content }}"
 

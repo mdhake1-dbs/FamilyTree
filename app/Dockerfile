@@ -1,30 +1,38 @@
+# repo-root/app/Dockerfile
 FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# system deps (if any)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# system deps required for sqlite and building wheels (kept minimal)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    build-essential \
+    libsqlite3-dev \
     sqlite3 \
  && rm -rf /var/lib/apt/lists/*
 
 # copy application code
 COPY . /app
 
-# install python deps if requirements.txt exists
+# pip install requirements
+RUN pip install --upgrade pip
 RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
-# Create data dir (will be mounted by Ansible)
+# create data dir (will be mounted by Ansible)
 RUN mkdir -p /app/data && chown -R 1000:1000 /app/data
 
-ENV SQLITE_DB_PATH=/app/data/demoDB.sqlite
-ENV FLASK_APP=backend/main.py
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=80
-
-# ensure the app runs as non-root (optional)
+# create app user to run as non-root
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+
+ENV SQLITE_DB_PATH=/app/data/demoDB.sqlite
+ENV FLASK_ENV=production
+ENV FLASK_APP=backend/main.py
+
 USER appuser
 
-# Use gunicorn if available; fallback to flask run
-CMD ["sh", "-c", "if command -v gunicorn >/dev/null 2>&1; then exec gunicorn -b 0.0.0.0:80 backend.main:app; else exec flask run --host=0.0.0.0 --port=80; fi"]
+# prefer gunicorn if installed; fallback to direct run
+CMD ["sh", "-c", "if command -v gunicorn >/dev/null 2>&1; then exec gunicorn -b 0.0.0.0:80 backend.main:app; else exec python3 backend/main.py; fi"]
 

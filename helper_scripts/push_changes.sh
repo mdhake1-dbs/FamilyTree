@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated Ansible,backend to adapt to sqlite instead of sqlserver SQLServer cannot run on aws free tier"
+git commit -m "Updated Ansible Now the deployment is successfull but backend conectivity breaks"
 git branch -M main
 git push -u origin main
 
