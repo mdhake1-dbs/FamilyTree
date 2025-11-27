@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated Github Secrets to test Ci-CD Pipeline"
+git commit -m "Testing Ci-CD Pipeline"
 git branch -M main
 git push -u origin main
 
