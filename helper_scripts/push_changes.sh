@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Deployment successfull All API Working Fine"
+git commit -m "Updated Github Secrets to test Ci-CD Pipeline"
 git branch -M main
 git push -u origin main
 
