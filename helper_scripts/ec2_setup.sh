@@ -2,8 +2,8 @@
 set -euo pipefail
 
 TERRAFORM_DIR="./terraform"
-ANSIBLE_INVENTORY_TEMPLATE="./ansible/hosts.ini"   # keep original as template (should contain placeholder YOUR_INSTANCE_IP)
-ANSIBLE_INVENTORY_FILE="./ansible/hosts.tmp"       # temp inventory created for this run
+ANSIBLE_INVENTORY_TEMPLATE="./ansible/hosts.ini"   
+ANSIBLE_INVENTORY_FILE="./ansible/hosts.tmp"       
 ANSIBLE_PLAYBOOK_FILE="./ansible/playbook.yml"
 PRIVATE_KEY="${HOME}/.ssh/id_rsa"
 

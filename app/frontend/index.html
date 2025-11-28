@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Tree Manager - People CRUD</title>
+    <title>Family Tree Manager</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,6 @@
         
         body {
             font-family: Arial, sans-serif;
-            padding: 20px;
             background-color: #f5f5f5;
         }
         
@@ -24,6 +23,40 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .auth-container {
+            max-width: 450px;
+            margin: 100px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin: 0;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-name {
+            color: #555;
+            font-weight: bold;
         }
         
         h1 {
@@ -174,107 +207,367 @@
             padding: 40px;
             color: #999;
         }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            font-size: 16px;
+            margin-right: 0;
+        }
+        
+        .auth-tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+        
+        .auth-form {
+            display: none;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Family Tree Manager</h1>
-        <p class="subtitle">Proof of Concept - People Management System</p>
+    <!-- AUTH SCREEN -->
+    <div id="authScreen" class="auth-container">
+        <h1 style="text-align: center; margin-bottom: 30px;">Family Tree Manager</h1>
         
-        <div id="messageBox" class="message"></div>
+        <div id="authMessage" class="message"></div>
         
-        <!-- CREATE/UPDATE FORM -->
-        <div class="section">
-            <h2 id="formTitle">Add New Person</h2>
-            <form id="personForm">
-                <input type="hidden" id="personId">
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="givenName">Given Name *</label>
-                        <input type="text" id="givenName" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="familyName">Family Name *</label>
-                        <input type="text" id="familyName" required>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="otherNames">Other Names</label>
-                        <input type="text" id="otherNames">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender">
-                            <option value="">Select...</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="birthDate">Birth Date</label>
-                        <input type="date" id="birthDate">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="deathDate">Death Date</label>
-                        <input type="date" id="deathDate">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="birthPlace">Birth Place</label>
-                    <input type="text" id="birthPlace">
-                </div>
-                
-                <div class="form-group">
-                    <label for="bio">Biography</label>
-                    <textarea id="bio"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="privacy">Privacy</label>
-                    <select id="privacy">
-                        <option value="private">Private</option>
-                        <option value="family">Family Only</option>
-                        <option value="public">Public</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <button type="submit" id="submitBtn">Add Person</button>
-                    <button type="button" class="secondary" onclick="resetForm()">Cancel</button>
-                </div>
-            </form>
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+            <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
         </div>
         
-        <!-- READ (LIST) -->
-        <div class="section">
-            <h2>People List</h2>
-            <button onclick="loadPeople()">Refresh List</button>
-            <div id="peopleList">
-                <div class="loading">Loading...</div>
+        <!-- LOGIN FORM -->
+        <form id="loginForm" class="auth-form active">
+            <div class="form-group">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" required>
+            </div>
+            
+            <button type="submit" style="width: 100%; margin-right: 0;">Login</button>
+        </form>
+        
+        <!-- REGISTER FORM -->
+        <form id="registerForm" class="auth-form">
+            <div class="form-group">
+                <label for="regUsername">Username *</label>
+                <input type="text" id="regUsername" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="regPassword">Password * (min 6 characters)</label>
+                <input type="password" id="regPassword" required minlength="6">
+            </div>
+            
+            <div class="form-group">
+                <label for="regEmail">Email</label>
+                <input type="email" id="regEmail">
+            </div>
+            
+            <div class="form-group">
+                <label for="regFullName">Full Name</label>
+                <input type="text" id="regFullName">
+            </div>
+            
+            <button type="submit" style="width: 100%; margin-right: 0;">Register</button>
+        </form>
+    </div>
+
+    <!-- MAIN APP SCREEN -->
+    <div id="appScreen" class="hidden" style="padding: 20px;">
+        <div class="container">
+            <div class="header">
+                <div>
+                    <h1>Family Tree Manager</h1>
+                    <p class="subtitle">Manage Your Family Tree</p>
+                </div>
+                <div class="user-info">
+                    <span class="user-name" id="currentUserName"></span>
+                    <button onclick="logout()">Logout</button>
+                </div>
+            </div>
+            
+            <div id="messageBox" class="message"></div>
+            
+            <!-- CREATE/UPDATE FORM -->
+            <div class="section">
+                <h2 id="formTitle">Add New Person</h2>
+                <form id="personForm">
+                    <input type="hidden" id="personId">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="givenName">Given Name *</label>
+                            <input type="text" id="givenName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="familyName">Family Name *</label>
+                            <input type="text" id="familyName" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="otherNames">Other Names</label>
+                            <input type="text" id="otherNames">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gender">Gender</label>
+                            <select id="gender">
+                                <option value="">Select...</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birthDate">Birth Date</label>
+                            <input type="date" id="birthDate">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="deathDate">Death Date</label>
+                            <input type="date" id="deathDate">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="birthPlace">Birth Place</label>
+                        <input type="text" id="birthPlace">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bio">Biography</label>
+                        <textarea id="bio"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="privacy">Privacy</label>
+                        <select id="privacy">
+                            <option value="private">Private</option>
+                            <option value="family">Family Only</option>
+                            <option value="public">Public</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <button type="submit" id="submitBtn">Add Person</button>
+                        <button type="button" class="secondary" onclick="resetForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- READ (LIST) -->
+            <div class="section">
+                <h2>People List</h2>
+                <button onclick="loadPeople()">Refresh List</button>
+                <div id="peopleList">
+                    <div class="loading">Loading...</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-
         const API_URL = '/api';
         let editingId = null;
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
 
-        // Load all people on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadPeople();
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (authToken) {
+                const valid = await checkAuth();
+                if (valid) {
+                    showApp();
+                    loadPeople();
+                } else {
+                    showAuth();
+                }
+            } else {
+                showAuth();
+            }
         });
+
+        // Auth tab switching
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'login') {
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+            
+            hideAuthMessage();
+        }
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    authToken = result.token;
+                    currentUser = result.user;
+                    localStorage.setItem('authToken', authToken);
+                    showApp();
+                    loadPeople();
+                } else {
+                    showAuthMessage(result.error, 'error');
+                }
+            } catch (error) {
+                showAuthMessage('Error connecting to server: ' + error.message, 'error');
+            }
+        });
+
+        // Register form handler
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+            const email = document.getElementById('regEmail').value;
+            const full_name = document.getElementById('regFullName').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password, email, full_name })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAuthMessage('Registration successful! Please login.', 'success');
+                    setTimeout(() => {
+                        switchAuthTab('login');
+                        document.getElementById('loginUsername').value = username;
+                    }, 1500);
+                } else {
+                    showAuthMessage(result.error, 'error');
+                }
+            } catch (error) {
+                showAuthMessage('Error connecting to server: ' + error.message, 'error');
+            }
+        });
+
+        // Check if current token is valid
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${API_URL}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentUser = result.user;
+                    return true;
+                } else {
+                    authToken = null;
+                    localStorage.removeItem('authToken');
+                    return false;
+                }
+            } catch (error) {
+                return false;
+            }
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetch(`${API_URL}/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            showAuth();
+        }
+
+        // Show/hide screens
+        function showAuth() {
+            document.getElementById('authScreen').classList.remove('hidden');
+            document.getElementById('appScreen').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+            document.getElementById('registerForm').reset();
+        }
+
+        function showApp() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            document.getElementById('currentUserName').textContent = currentUser.full_name || currentUser.username;
+        }
+
+        function showAuthMessage(message, type) {
+            const messageBox = document.getElementById('authMessage');
+            messageBox.textContent = message;
+            messageBox.className = `message ${type}`;
+            messageBox.style.display = 'block';
+        }
+
+        function hideAuthMessage() {
+            document.getElementById('authMessage').style.display = 'none';
+        }
 
         // Form submission handler
         document.getElementById('personForm').addEventListener('submit', async (e) => {
@@ -305,7 +598,8 @@
                 const response = await fetch(`${API_URL}/people`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify(personData)
                 });
@@ -330,13 +624,22 @@
             listDiv.innerHTML = '<div class="loading">Loading...</div>';
             
             try {
-                const response = await fetch(`${API_URL}/people`);
+                const response = await fetch(`${API_URL}/people`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
                 const result = await response.json();
                 
                 if (result.success) {
                     displayPeople(result.data);
                 } else {
-                    listDiv.innerHTML = `<div class="error">Error: ${result.error}</div>`;
+                    if (response.status === 401) {
+                        logout();
+                    } else {
+                        listDiv.innerHTML = `<div class="error">Error: ${result.error}</div>`;
+                    }
                 }
             } catch (error) {
                 listDiv.innerHTML = `<div class="error">Error connecting to server: ${error.message}</div>`;
@@ -394,7 +697,12 @@
         // READ operation - View single person
         async function viewPerson(id) {
             try {
-                const response = await fetch(`${API_URL}/people/${id}`);
+                const response = await fetch(`${API_URL}/people/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
                 const result = await response.json();
                 
                 if (result.success) {
@@ -421,7 +729,12 @@ Privacy: ${person.privacy}
         // UPDATE operation - Load person data into form
         async function editPerson(id) {
             try {
-                const response = await fetch(`${API_URL}/people/${id}`);
+                const response = await fetch(`${API_URL}/people/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
                 const result = await response.json();
                 
                 if (result.success) {
@@ -441,7 +754,6 @@ Privacy: ${person.privacy}
                     document.getElementById('bio').value = person.bio || '';
                     document.getElementById('privacy').value = person.privacy;
                     
-                    // Scroll to form
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                     showMessage('Error: ' + result.error, 'error');
@@ -457,7 +769,8 @@ Privacy: ${person.privacy}
                 const response = await fetch(`${API_URL}/people/${id}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify(personData)
                 });
@@ -484,7 +797,10 @@ Privacy: ${person.privacy}
             
             try {
                 const response = await fetch(`${API_URL}/people/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
                 });
                 
                 const result = await response.json();

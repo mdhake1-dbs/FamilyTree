@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Removing Residual FIles"
+git commit -m "Updated Login Page"
 git branch -M main
 git push -u origin main
 
