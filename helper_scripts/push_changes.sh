@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Testing Ci-CD Pipeline"
+git commit -m "Removing Residual FIles"
 git branch -M main
 git push -u origin main
 
