@@ -1,398 +1,164 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Family Tree Manager</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .auth-container {
-            max-width: 450px;
-            margin: 100px auto;
-            background: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #007bff;
-        }
-        
-        .header h1 {
-            color: #333;
-            margin: 0;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .user-name {
-            color: #555;
-            font-weight: bold;
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-        }
-        
-        .section {
-            margin-bottom: 30px;
-        }
-        
-        .section h2 {
-            color: #444;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 5px;
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: bold;
-        }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-        
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        
-        button {
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-right: 10px;
-        }
-        
-        button:hover {
-            background-color: #0056b3;
-        }
-        
-        button.delete {
-            background-color: #dc3545;
-        }
-        
-        button.delete:hover {
-            background-color: #c82333;
-        }
-        
-        button.secondary {
-            background-color: #6c757d;
-        }
-        
-        button.secondary:hover {
-            background-color: #5a6268;
-        }
-        
-        #peopleList {
-            margin-top: 20px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .actions {
-            white-space: nowrap;
-        }
-        
-        .actions button {
-            padding: 5px 10px;
-            font-size: 12px;
-            margin-right: 5px;
-        }
-        
-        .message {
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            display: none;
-        }
-        
-        .message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .auth-tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ddd;
-        }
-        
-        .auth-tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
-            color: #666;
-            font-size: 16px;
-            margin-right: 0;
-        }
-        
-        .auth-tab.active {
-            color: #007bff;
-            border-bottom-color: #007bff;
-        }
-        
-        .auth-form {
-            display: none;
-        }
-        
-        .auth-form.active {
-            display: block;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; background:#f5f5f5; }
+        .container { max-width:1200px; margin:20px auto; background:white; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:2px solid #007bff; padding-bottom:12px; }
+        .user-info { display:flex; gap:10px; align-items:center; }
+        button { padding:8px 14px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer; }
+        button.secondary { background:#6c757d; }
+        button.delete { background:#dc3545; }
+        .hidden { display:none !important; }
+        .nav-buttons { display:flex; gap:10px; margin-top:15px; }
+        .section { margin-top:20px; }
+        label { display:block; margin-bottom:6px; font-weight:600; color:#333; }
+        input, select, textarea { width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; margin-bottom:12px; }
+        table { width:100%; border-collapse:collapse; margin-top:10px; }
+        th, td { padding:10px; border-bottom:1px solid #eee; text-align:left; }
+        th { background:#f8f9fa; }
+        .actions button { padding:6px 8px; margin-right:6px; font-size:12px; }
+        .message { padding:10px; border-radius:4px; display:none; margin-bottom:12px; }
+        .message.success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; display:block; }
+        .message.error { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; display:block; }
+        .homepage { padding:30px; text-align:center; color:#333; }
+        .profile-box { border:1px solid #eee; padding:12px; border-radius:6px; max-width:480px; }
     </style>
 </head>
 <body>
     <!-- AUTH SCREEN -->
-    <div id="authScreen" class="auth-container">
-        <h1 style="text-align: center; margin-bottom: 30px;">Family Tree Manager</h1>
-        
+    <div id="authScreen" style="max-width:450px;margin:80px auto;background:white;padding:30px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+        <h1 style="text-align:center;margin-bottom:20px;">Family Tree Manager</h1>
         <div id="authMessage" class="message"></div>
-        
-        <div class="auth-tabs">
-            <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
-            <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+
+        <div style="display:flex;border-bottom:2px solid #ddd;margin-bottom:16px;">
+            <button id="tabLogin" style="flex:1;padding:10px;border:none;background:none;cursor:pointer;font-size:16px;color:#007bff;" onclick="switchAuthTab('login')">Login</button>
+            <button id="tabRegister" style="flex:1;padding:10px;border:none;background:none;cursor:pointer;font-size:16px;color:#666;" onclick="switchAuthTab('register')">Register</button>
         </div>
-        
-        <!-- LOGIN FORM -->
-        <form id="loginForm" class="auth-form active">
-            <div class="form-group">
-                <label for="loginUsername">Username</label>
-                <input type="text" id="loginUsername" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="loginPassword">Password</label>
-                <input type="password" id="loginPassword" required>
-            </div>
-            
-            <button type="submit" style="width: 100%; margin-right: 0;">Login</button>
+
+        <form id="loginForm">
+            <label>Username</label>
+            <input id="loginUsername" required />
+            <label>Password</label>
+            <input id="loginPassword" type="password" required />
+            <button type="submit" style="width:100%;margin-top:10px;">Login</button>
         </form>
-        
-        <!-- REGISTER FORM -->
-        <form id="registerForm" class="auth-form">
-            <div class="form-group">
-                <label for="regUsername">Username *</label>
-                <input type="text" id="regUsername" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="regPassword">Password * (min 6 characters)</label>
-                <input type="password" id="regPassword" required minlength="6">
-            </div>
-            
-            <div class="form-group">
-                <label for="regEmail">Email</label>
-                <input type="email" id="regEmail">
-            </div>
-            
-            <div class="form-group">
-                <label for="regFullName">Full Name</label>
-                <input type="text" id="regFullName">
-            </div>
-            
-            <button type="submit" style="width: 100%; margin-right: 0;">Register</button>
+
+        <form id="registerForm" class="hidden">
+            <label>Username *</label>
+            <input id="regUsername" required />
+            <label>Password * (min 6)</label>
+            <input id="regPassword" type="password" required minlength="6" />
+            <label>Email</label>
+            <input id="regEmail" type="email" />
+            <label>Full Name</label>
+            <input id="regFullName" />
+            <button type="submit" style="width:100%;margin-top:10px;">Register</button>
         </form>
     </div>
 
-    <!-- MAIN APP SCREEN -->
-    <div id="appScreen" class="hidden" style="padding: 20px;">
+    <!-- APP SCREEN -->
+    <div id="appScreen" class="hidden" style="padding:20px;">
         <div class="container">
             <div class="header">
                 <div>
                     <h1>Family Tree Manager</h1>
-                    <p class="subtitle">Manage Your Family Tree</p>
+                    <p style="color:#666;margin-top:4px;">Manage Your Family Tree</p>
                 </div>
                 <div class="user-info">
-                    <span class="user-name" id="currentUserName"></span>
-                    <button onclick="logout()">Logout</button>
+                    <span id="currentUserName" style="font-weight:700;color:#333;"></span>
+                    <button onclick="showHome()">Home</button>
+                    <button onclick="showAddPerson()">Add Person</button>
+                    <button onclick="showPeople()">View All</button>
+                    <button onclick="toggleProfile()">Profile</button>
+                    <button onclick="logout()" class="secondary">Logout</button>
                 </div>
             </div>
-            
+
             <div id="messageBox" class="message"></div>
-            
-            <!-- CREATE/UPDATE FORM -->
-            <div class="section">
+
+            <!-- HOMEPAGE -->
+            <div id="homePage" class="homepage">
+                <div style="max-width:800px;margin:0 auto;">
+                    <h2>Welcome to your Family Tree</h2>
+                    <p style="margin-top:12px;color:#555;">
+                        This site lets you add family members, record relationships, view and edit entries, and maintain a soft-deleted archive.
+                        Use <strong>Add Person</strong> to create entries and <strong>View All</strong> to see and manage your people.
+                    </p>
+                    <div class="nav-buttons" style="justify-content:center;margin-top:18px;">
+                        <button onclick="showAddPerson()">Add Person</button>
+                        <button onclick="showPeople()">View All</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROFILE -->
+            <div id="profileSection" class="hidden section" style="display:flex;justify-content:center;">
+                <div class="profile-box">
+                    <h3 style="margin-bottom:10px;">Edit Profile</h3>
+                    <div id="profileMsg" class="message"></div>
+                    <label>Full name</label>
+                    <input id="profileFullName" />
+                    <label>Email</label>
+                    <input id="profileEmail" type="email" />
+                    <label>New password (leave blank to keep current)</label>
+                    <input id="profilePassword" type="password" />
+                    <div style="display:flex;gap:8px;margin-top:8px;">
+                        <button onclick="saveProfile()">Save</button>
+                        <button class="secondary" onclick="toggleProfile()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADD / EDIT PERSON FORM (hidden on load) -->
+            <div id="personFormSection" class="section hidden">
                 <h2 id="formTitle">Add New Person</h2>
                 <form id="personForm">
-                    <input type="hidden" id="personId">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="givenName">Given Name *</label>
-                            <input type="text" id="givenName" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="familyName">Family Name *</label>
-                            <input type="text" id="familyName" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="otherNames">Other Names</label>
-                            <input type="text" id="otherNames">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="gender">Gender</label>
-                            <select id="gender">
-                                <option value="">Select...</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="birthDate">Birth Date</label>
-                            <input type="date" id="birthDate">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="deathDate">Death Date</label>
-                            <input type="date" id="deathDate">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="birthPlace">Birth Place</label>
-                        <input type="text" id="birthPlace">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="bio">Biography</label>
-                        <textarea id="bio"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="privacy">Privacy</label>
-                        <select id="privacy">
-                            <option value="private">Private</option>
-                            <option value="family">Family Only</option>
-                            <option value="public">Public</option>
-                        </select>
-                    </div>
-                    
-                    <div>
+                    <input type="hidden" id="personId" />
+                    <label>Given Name *</label>
+                    <input id="givenName" required />
+                    <label>Family Name *</label>
+                    <input id="familyName" required />
+                    <label>Other Names</label>
+                    <input id="otherNames" />
+                    <label>Gender</label>
+                    <select id="gender">
+                        <option value="">Select...</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                        <option>Other</option>
+                    </select>
+                    <label>Birth Date</label>
+                    <input id="birthDate" type="date" />
+                    <label>Death Date</label>
+                    <input id="deathDate" type="date" />
+                    <label>Birth Place</label>
+                    <input id="birthPlace" />
+                    <label>Relation (who this person is related to)</label>
+                    <input id="relation" placeholder="e.g. son of John Doe, spouse of Jane..." />
+                    <label>Biography</label>
+                    <textarea id="bio"></textarea>
+
+                    <div style="margin-top:8px;">
                         <button type="submit" id="submitBtn">Add Person</button>
-                        <button type="button" class="secondary" onclick="resetForm()">Cancel</button>
+                        <button type="button" class="secondary" onclick="cancelAddEdit()">Cancel</button>
                     </div>
                 </form>
             </div>
-            
-            <!-- READ (LIST) -->
-            <div class="section">
+
+            <!-- PEOPLE LIST (hidden on load) -->
+            <div id="peopleSection" class="section hidden">
                 <h2>People List</h2>
-                <button onclick="loadPeople()">Refresh List</button>
+                <div style="margin-bottom:10px;">
+                    <button onclick="loadPeople()">Refresh List</button>
+                    <button class="secondary" onclick="showAddPerson()">Add Person</button>
+                </div>
                 <div id="peopleList">
-                    <div class="loading">Loading...</div>
+                    <!-- dynamic -->
                 </div>
             </div>
         </div>
@@ -400,17 +166,32 @@
 
     <script>
         const API_URL = '/api';
-        let editingId = null;
         let authToken = localStorage.getItem('authToken');
         let currentUser = null;
+        let editingId = null;
 
-        // Check authentication on page load
+        // Initial auth UI
+        function switchAuthTab(tab) {
+            document.getElementById('authMessage').style.display = 'none';
+            if (tab === 'login') {
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('registerForm').classList.add('hidden');
+                document.getElementById('tabLogin').style.color = '#007bff';
+                document.getElementById('tabRegister').style.color = '#666';
+            } else {
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('registerForm').classList.remove('hidden');
+                document.getElementById('tabLogin').style.color = '#666';
+                document.getElementById('tabRegister').style.color = '#007bff';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             if (authToken) {
-                const valid = await checkAuth();
-                if (valid) {
+                const ok = await checkAuth();
+                if (ok) {
                     showApp();
-                    loadPeople();
+                    showHome();
                 } else {
                     showAuth();
                 }
@@ -419,132 +200,86 @@
             }
         });
 
-        // Auth tab switching
-        function switchAuthTab(tab) {
-            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-            
-            if (tab === 'login') {
-                document.querySelectorAll('.auth-tab')[0].classList.add('active');
-                document.getElementById('loginForm').classList.add('active');
-            } else {
-                document.querySelectorAll('.auth-tab')[1].classList.add('active');
-                document.getElementById('registerForm').classList.add('active');
-            }
-            
-            hideAuthMessage();
-        }
-
-        // Login form handler
+        // Auth handlers
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-            
+
             try {
-                const response = await fetch(`${API_URL}/auth/login`, {
+                const r = await fetch(`${API_URL}/auth/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({ username, password })
                 });
-                
-                const result = await response.json();
-                
+                const result = await r.json();
                 if (result.success) {
                     authToken = result.token;
                     currentUser = result.user;
                     localStorage.setItem('authToken', authToken);
                     showApp();
-                    loadPeople();
+                    showHome();
                 } else {
                     showAuthMessage(result.error, 'error');
                 }
-            } catch (error) {
-                showAuthMessage('Error connecting to server: ' + error.message, 'error');
+            } catch (err) {
+                showAuthMessage('Connection error: ' + err.message, 'error');
             }
         });
 
-        // Register form handler
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const username = document.getElementById('regUsername').value;
             const password = document.getElementById('regPassword').value;
             const email = document.getElementById('regEmail').value;
             const full_name = document.getElementById('regFullName').value;
-            
+
             try {
-                const response = await fetch(`${API_URL}/auth/register`, {
+                const r = await fetch(`${API_URL}/auth/register`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({ username, password, email, full_name })
                 });
-                
-                const result = await response.json();
-                
+                const result = await r.json();
                 if (result.success) {
-                    showAuthMessage('Registration successful! Please login.', 'success');
-                    setTimeout(() => {
-                        switchAuthTab('login');
-                        document.getElementById('loginUsername').value = username;
-                    }, 1500);
+                    showAuthMessage('Registration successful. Please login.', 'success');
+                    setTimeout(() => { switchAuthTab('login'); document.getElementById('loginUsername').value = username; }, 1000);
                 } else {
                     showAuthMessage(result.error, 'error');
                 }
-            } catch (error) {
-                showAuthMessage('Error connecting to server: ' + error.message, 'error');
+            } catch (err) {
+                showAuthMessage('Connection error: ' + err.message, 'error');
             }
         });
 
-        // Check if current token is valid
         async function checkAuth() {
             try {
-                const response = await fetch(`${API_URL}/auth/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    currentUser = result.user;
+                const r = await fetch(`${API_URL}/auth/me`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await r.json();
+                if (res.success) {
+                    currentUser = res.user;
                     return true;
                 } else {
                     authToken = null;
                     localStorage.removeItem('authToken');
                     return false;
                 }
-            } catch (error) {
+            } catch (err) {
                 return false;
             }
         }
 
-        // Logout
         async function logout() {
             try {
-                await fetch(`${API_URL}/auth/logout`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-            } catch (error) {
-                console.error('Logout error:', error);
-            }
-            
+                await fetch(`${API_URL}/auth/logout`, { method:'POST', headers: { 'Authorization': `Bearer ${authToken}` } });
+            } catch (e) { /* ignore */ }
             authToken = null;
             currentUser = null;
             localStorage.removeItem('authToken');
             showAuth();
         }
 
-        // Show/hide screens
+        // UI screens
         function showAuth() {
             document.getElementById('authScreen').classList.remove('hidden');
             document.getElementById('appScreen').classList.add('hidden');
@@ -558,21 +293,99 @@
             document.getElementById('currentUserName').textContent = currentUser.full_name || currentUser.username;
         }
 
+        function showHome() {
+            hideAllMainSections();
+            document.getElementById('homePage').classList.remove('hidden');
+        }
+
+        function showAddPerson() {
+            hideAllMainSections();
+            document.getElementById('personFormSection').classList.remove('hidden');
+            document.getElementById('formTitle').textContent = 'Add New Person';
+            document.getElementById('submitBtn').textContent = 'Add Person';
+            resetForm();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showPeople() {
+            hideAllMainSections();
+            document.getElementById('peopleSection').classList.remove('hidden');
+            loadPeople();
+        }
+
+        function hideAllMainSections() {
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('profileSection').classList.add('hidden');
+            document.getElementById('personFormSection').classList.add('hidden');
+            document.getElementById('peopleSection').classList.add('hidden');
+            document.getElementById('messageBox').style.display = 'none';
+        }
+
         function showAuthMessage(message, type) {
-            const messageBox = document.getElementById('authMessage');
-            messageBox.textContent = message;
-            messageBox.className = `message ${type}`;
-            messageBox.style.display = 'block';
+            const m = document.getElementById('authMessage');
+            m.textContent = message;
+            m.className = 'message ' + (type === 'error' ? 'error' : 'success');
+            m.style.display = 'block';
+            setTimeout(()=>{ m.style.display = 'none'; }, 4000);
         }
 
-        function hideAuthMessage() {
-            document.getElementById('authMessage').style.display = 'none';
+        // PROFILE UI
+        function toggleProfile() {
+            const el = document.getElementById('profileSection');
+            if (el.classList.contains('hidden')) {
+                // populate
+                document.getElementById('profileFullName').value = currentUser.full_name || '';
+                document.getElementById('profileEmail').value = currentUser.email || '';
+                document.getElementById('profilePassword').value = '';
+                hideAllMainSections();
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+                showHome();
+            }
         }
 
-        // Form submission handler
+        async function saveProfile() {
+            const full_name = document.getElementById('profileFullName').value;
+            const email = document.getElementById('profileEmail').value;
+            const password = document.getElementById('profilePassword').value;
+
+            try {
+                const r = await fetch(`${API_URL}/auth/me`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ full_name, email, password })
+                });
+                const res = await r.json();
+                if (res.success) {
+                    currentUser = res.user;
+                    document.getElementById('currentUserName').textContent = currentUser.full_name || currentUser.username;
+                    const pm = document.getElementById('profileMsg');
+                    pm.textContent = 'Profile updated';
+                    pm.className = 'message success';
+                    pm.style.display = 'block';
+                    setTimeout(()=>{ pm.style.display = 'none'; }, 3000);
+                    toggleProfile();
+                } else {
+                    const pm = document.getElementById('profileMsg');
+                    pm.textContent = res.error || 'Error';
+                    pm.className = 'message error';
+                    pm.style.display = 'block';
+                }
+            } catch (err) {
+                const pm = document.getElementById('profileMsg');
+                pm.textContent = 'Connection error: ' + err.message;
+                pm.className = 'message error';
+                pm.style.display = 'block';
+            }
+        }
+
+        // PERSON FORM handlers (create/update)
         document.getElementById('personForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const personData = {
                 given_name: document.getElementById('givenName').value,
                 family_name: document.getElementById('familyName').value,
@@ -582,9 +395,9 @@
                 death_date: document.getElementById('deathDate').value || null,
                 birth_place: document.getElementById('birthPlace').value,
                 bio: document.getElementById('bio').value,
-                privacy: document.getElementById('privacy').value
+                relation: document.getElementById('relation').value
             };
-            
+
             if (editingId) {
                 await updatePerson(editingId, personData);
             } else {
@@ -592,231 +405,169 @@
             }
         });
 
-        // CREATE operation
         async function createPerson(personData) {
             try {
-                const response = await fetch(`${API_URL}/people`, {
+                const r = await fetch(`${API_URL}/people`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type':'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify(personData)
                 });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('Person added successfully!', 'success');
+                const res = await r.json();
+                if (res.success) {
+                    showMessage('Person added', 'success');
                     resetForm();
-                    loadPeople();
+                    showPeople();
                 } else {
-                    showMessage('Error: ' + result.error, 'error');
+                    showMessage('Error: ' + res.error, 'error');
                 }
-            } catch (error) {
-                showMessage('Error connecting to server: ' + error.message, 'error');
+            } catch (err) {
+                showMessage('Connection error: ' + err.message, 'error');
             }
         }
 
-        // READ operation - Get all people
         async function loadPeople() {
-            const listDiv = document.getElementById('peopleList');
-            listDiv.innerHTML = '<div class="loading">Loading...</div>';
-            
+            const container = document.getElementById('peopleList');
+            container.innerHTML = '<div>Loading...</div>';
             try {
-                const response = await fetch(`${API_URL}/people`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    displayPeople(result.data);
+                const r = await fetch(`${API_URL}/people`, { headers: { 'Authorization': `Bearer ${authToken}` }});
+                const res = await r.json();
+                if (res.success) {
+                    displayPeople(res.data);
                 } else {
-                    if (response.status === 401) {
-                        logout();
-                    } else {
-                        listDiv.innerHTML = `<div class="error">Error: ${result.error}</div>`;
-                    }
+                    if (r.status === 401) { logout(); }
+                    container.innerHTML = `<div class="message error">${res.error}</div>`;
                 }
-            } catch (error) {
-                listDiv.innerHTML = `<div class="error">Error connecting to server: ${error.message}</div>`;
+            } catch (err) {
+                container.innerHTML = `<div class="message error">Connection error: ${err.message}</div>`;
             }
         }
 
-        // Display people in table
         function displayPeople(people) {
-            const listDiv = document.getElementById('peopleList');
-            
-            if (people.length === 0) {
-                listDiv.innerHTML = '<div class="empty-state">No people found. Add your first person above!</div>';
+            const container = document.getElementById('peopleList');
+            if (!people || people.length === 0) {
+                container.innerHTML = '<div>No people found. Click "Add Person" to create one.</div>';
                 return;
             }
-            
-            let html = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Birth Date</th>
-                            <th>Birth Place</th>
-                            <th>Gender</th>
-                            <th>Privacy</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            people.forEach(person => {
-                const fullName = `${person.given_name} ${person.family_name}`;
-                const birthDate = person.birth_date ? new Date(person.birth_date).toLocaleDateString() : 'N/A';
-                
-                html += `
-                    <tr>
-                        <td><strong>${fullName}</strong></td>
-                        <td>${birthDate}</td>
-                        <td>${person.birth_place || 'N/A'}</td>
-                        <td>${person.gender || 'N/A'}</td>
-                        <td>${person.privacy}</td>
-                        <td class="actions">
-                            <button onclick="viewPerson(${person.id})">View</button>
-                            <button onclick="editPerson(${person.id})">Edit</button>
-                            <button class="delete" onclick="deletePerson(${person.id}, '${fullName}')">Delete</button>
-                        </td>
-                    </tr>
-                `;
+            let html = `<table><thead><tr><th>Name</th><th>Relation</th><th>Birth Date</th><th>Birth Place</th><th>Gender</th><th>Actions</th></tr></thead><tbody>`;
+            people.forEach(p => {
+                const name = `${p.given_name} ${p.family_name}`;
+                const birthDate = p.birth_date ? new Date(p.birth_date).toLocaleDateString() : 'N/A';
+                html += `<tr>
+                    <td><strong>${escapeHtml(name)}</strong></td>
+                    <td>${escapeHtml(p.relation || 'N/A')}</td>
+                    <td>${birthDate}</td>
+                    <td>${escapeHtml(p.birth_place || 'N/A')}</td>
+                    <td>${escapeHtml(p.gender || 'N/A')}</td>
+                    <td class="actions">
+                        <button onclick="viewPerson(${p.id})">View</button>
+                        <button onclick="editPerson(${p.id})">Edit</button>
+                        <button class="delete" onclick="deletePerson(${p.id}, '${escapeJs(name)}')">Delete</button>
+                    </td>
+                </tr>`;
             });
-            
             html += '</tbody></table>';
-            listDiv.innerHTML = html;
+            container.innerHTML = html;
         }
 
-        // READ operation - View single person
         async function viewPerson(id) {
             try {
-                const response = await fetch(`${API_URL}/people/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    const person = result.data;
+                const r = await fetch(`${API_URL}/people/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` }});
+                const res = await r.json();
+                if (res.success) {
+                    const p = res.data;
                     const details = `
-Name: ${person.given_name} ${person.family_name}
-Other Names: ${person.other_names || 'N/A'}
-Gender: ${person.gender || 'N/A'}
-Birth Date: ${person.birth_date ? new Date(person.birth_date).toLocaleDateString() : 'N/A'}
-Death Date: ${person.death_date ? new Date(person.death_date).toLocaleDateString() : 'N/A'}
-Birth Place: ${person.birth_place || 'N/A'}
-Biography: ${person.bio || 'N/A'}
-Privacy: ${person.privacy}
+Name: ${p.given_name} ${p.family_name}
+Relation: ${p.relation || 'N/A'}
+Other names: ${p.other_names || 'N/A'}
+Gender: ${p.gender || 'N/A'}
+Birth Date: ${p.birth_date ? new Date(p.birth_date).toLocaleDateString() : 'N/A'}
+Death Date: ${p.death_date ? new Date(p.death_date).toLocaleDateString() : 'N/A'}
+Birth Place: ${p.birth_place || 'N/A'}
+Biography: ${p.bio || 'N/A'}
                     `;
                     alert(details);
                 } else {
-                    showMessage('Error: ' + result.error, 'error');
+                    showMessage('Error: ' + res.error, 'error');
                 }
-            } catch (error) {
-                showMessage('Error: ' + error.message, 'error');
+            } catch (err) {
+                showMessage('Connection error: ' + err.message, 'error');
             }
         }
 
-        // UPDATE operation - Load person data into form
         async function editPerson(id) {
             try {
-                const response = await fetch(`${API_URL}/people/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    const person = result.data;
+                const r = await fetch(`${API_URL}/people/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` }});
+                const res = await r.json();
+                if (res.success) {
+                    const p = res.data;
                     editingId = id;
-                    
+                    showAddPerson();
                     document.getElementById('formTitle').textContent = 'Edit Person';
                     document.getElementById('submitBtn').textContent = 'Update Person';
                     document.getElementById('personId').value = id;
-                    document.getElementById('givenName').value = person.given_name;
-                    document.getElementById('familyName').value = person.family_name;
-                    document.getElementById('otherNames').value = person.other_names || '';
-                    document.getElementById('gender').value = person.gender || '';
-                    document.getElementById('birthDate').value = person.birth_date ? person.birth_date.split('T')[0] : '';
-                    document.getElementById('deathDate').value = person.death_date ? person.death_date.split('T')[0] : '';
-                    document.getElementById('birthPlace').value = person.birth_place || '';
-                    document.getElementById('bio').value = person.bio || '';
-                    document.getElementById('privacy').value = person.privacy;
-                    
+                    document.getElementById('givenName').value = p.given_name || '';
+                    document.getElementById('familyName').value = p.family_name || '';
+                    document.getElementById('otherNames').value = p.other_names || '';
+                    document.getElementById('gender').value = p.gender || '';
+                    document.getElementById('birthDate').value = p.birth_date ? p.birth_date.split('T')[0] : '';
+                    document.getElementById('deathDate').value = p.death_date ? p.death_date.split('T')[0] : '';
+                    document.getElementById('birthPlace').value = p.birth_place || '';
+                    document.getElementById('bio').value = p.bio || '';
+                    document.getElementById('relation').value = p.relation || '';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                    showMessage('Error: ' + result.error, 'error');
+                    showMessage('Error: ' + res.error, 'error');
                 }
-            } catch (error) {
-                showMessage('Error: ' + error.message, 'error');
+            } catch (err) {
+                showMessage('Connection error: ' + err.message, 'error');
             }
         }
 
-        // UPDATE operation - Submit update
         async function updatePerson(id, personData) {
             try {
-                const response = await fetch(`${API_URL}/people/${id}`, {
+                const r = await fetch(`${API_URL}/people/${id}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type':'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify(personData)
                 });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('Person updated successfully!', 'success');
+                const res = await r.json();
+                if (res.success) {
+                    showMessage('Person updated', 'success');
                     resetForm();
-                    loadPeople();
+                    showPeople();
                 } else {
-                    showMessage('Error: ' + result.error, 'error');
+                    showMessage('Error: ' + res.error, 'error');
                 }
-            } catch (error) {
-                showMessage('Error: ' + error.message, 'error');
+            } catch (err) {
+                showMessage('Connection error: ' + err.message, 'error');
             }
         }
 
-        // DELETE operation
         async function deletePerson(id, name) {
-            if (!confirm(`Are you sure you want to delete ${name}?`)) {
-                return;
-            }
-            
+            if (!confirm(`Delete ${name}?`)) return;
             try {
-                const response = await fetch(`${API_URL}/people/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
+                const r = await fetch(`${API_URL}/people/${id}`, {
+                    method:'DELETE',
+                    headers:{ 'Authorization': `Bearer ${authToken}` }
                 });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('Person deleted successfully!', 'success');
+                const res = await r.json();
+                if (res.success) {
+                    showMessage('Person deleted', 'success');
                     loadPeople();
                 } else {
-                    showMessage('Error: ' + result.error, 'error');
+                    showMessage('Error: ' + res.error, 'error');
                 }
-            } catch (error) {
-                showMessage('Error: ' + error.message, 'error');
+            } catch (err) {
+                showMessage('Connection error: ' + err.message, 'error');
             }
         }
 
-        // Reset form to add mode
         function resetForm() {
             editingId = null;
             document.getElementById('personForm').reset();
@@ -825,17 +576,31 @@ Privacy: ${person.privacy}
             document.getElementById('personId').value = '';
         }
 
-        // Show message to user
-        function showMessage(message, type) {
-            const messageBox = document.getElementById('messageBox');
-            messageBox.textContent = message;
-            messageBox.className = `message ${type}`;
-            messageBox.style.display = 'block';
-            
-            setTimeout(() => {
-                messageBox.style.display = 'none';
-            }, 5000);
+        function cancelAddEdit() {
+            resetForm();
+            showHome();
+        }
+
+        function showMessage(msg, type) {
+            const box = document.getElementById('messageBox');
+            box.textContent = msg;
+            box.className = 'message ' + (type === 'error' ? 'error' : 'success');
+            box.style.display = 'block';
+            setTimeout(()=>{ box.style.display = 'none'; }, 4000);
+        }
+
+        // small helpers to avoid injection in alerts / confirm strings
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, function (m) {
+                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
+            });
+        }
+        function escapeJs(str) {
+            if (!str) return '';
+            return String(str).replace(/'/g, "\\'");
         }
     </script>
 </body>
 </html>
+

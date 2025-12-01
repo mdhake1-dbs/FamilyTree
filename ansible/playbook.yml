@@ -1,5 +1,5 @@
 ---
-- name: "Configure web VM (SQLite + build app image)"
+- name: "Configure web VM (SQLite + build app image with migrations)"
   hosts: web
   become: yes
   vars:
@@ -28,7 +28,7 @@
           - gnupg
           - lsb-release
           - python3-pip
-          - rsync                     # ensure rsync present on remote (required by synchronize)
+          - rsync
         state: present
         update_cache: yes
 
@@ -102,26 +102,79 @@
       loop: "{{ sql_files_local | default([]) }}"
       when: sql_files_local | length > 0
 
-    - name: "Create SQLite DB file from first script if missing (schema)"
-      shell: |
-        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" < "/tmp/db_init/{{ sql_files_local[0] | basename }}"
-      args:
-        creates: "{{ db_data_dir }}/{{ target_db_name }}"
-      when: sql_files_local | length > 0
+    - name: "Check if SQLite DB file exists"
+      stat:
+        path: "{{ db_data_dir }}/{{ target_db_name }}"
+      register: db_file_stat
 
-    - name: "Run remaining SQL scripts against SQLite DB (if any)"
-      shell: |
-        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" < "/tmp/db_init/{{ item | basename }}"
-      loop: "{{ sql_files_local[1:] | default([]) }}"
-      when: sql_files_local | length > 1
-
-    - name: "Ensure SQLite DB file exists (touch) - safe fallback when no SQL provided"
+    - name: "Create SQLite DB file if missing"
       file:
         path: "{{ db_data_dir }}/{{ target_db_name }}"
         state: touch
         owner: "{{ container_user_name }}"
         group: "{{ container_user_name }}"
         mode: '0644'
+      when: not db_file_stat.stat.exists
+
+    - name: "Create migrations tracking table"
+      shell: |
+        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" <<'EOF'
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          filename TEXT NOT NULL UNIQUE,
+          applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        EOF
+      when: sql_files_local | length > 0
+
+    - name: "Get list of already applied migrations"
+      shell: |
+        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" "SELECT filename FROM schema_migrations ORDER BY filename;"
+      register: applied_migrations_result
+      changed_when: false
+      when: sql_files_local | length > 0
+
+    - name: "Parse applied migrations"
+      set_fact:
+        applied_migrations: "{{ applied_migrations_result.stdout_lines | default([]) }}"
+      when: sql_files_local | length > 0
+
+    - name: "Debug: show applied migrations"
+      debug:
+        msg: "Already applied migrations: {{ applied_migrations | default([]) }}"
+      changed_when: false
+      when: sql_files_local | length > 0
+
+    - name: "Determine pending migrations"
+      set_fact:
+        pending_migrations: "{{ sql_files_local | map('basename') | difference(applied_migrations | default([])) | sort }}"
+      when: sql_files_local | length > 0
+
+    - name: "Debug: show pending migrations"
+      debug:
+        msg: "Pending migrations to apply: {{ pending_migrations | default([]) }}"
+      changed_when: false
+      when: sql_files_local | length > 0
+
+    - name: "Apply pending migrations"
+      shell: |
+        set -e
+        FILENAME="{{ item }}"
+        echo "Applying migration: $FILENAME"
+        
+        # Apply the SQL file
+        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" < "/tmp/db_init/$FILENAME"
+        
+        # Record the migration
+        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" \
+          "INSERT INTO schema_migrations (filename) VALUES ('$FILENAME');"
+        
+        echo "Successfully applied: $FILENAME"
+      loop: "{{ pending_migrations | default([]) }}"
+      when: 
+        - sql_files_local | length > 0
+        - pending_migrations | length > 0
+      register: migration_results
 
     - name: "Ensure DB file ownership and permissions"
       file:
@@ -130,25 +183,14 @@
         group: "{{ container_user_name }}"
         mode: '0644'
 
-    - name: "Verify 'People' table exists in SQLite DB (only if SQL was applied)"
-      shell: |
-        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" "SELECT name FROM sqlite_master WHERE type='table' AND name='People';"
-      register: verify_people_table
-      changed_when: false
-      failed_when:
-        - verify_people_table.stdout | trim != 'People'
-      when: sql_files_local | length > 0
-
-    - name: "Debug: DB init finished"
+    - name: "Debug: Migration summary"
       debug:
         msg:
-          - "DB init completed (SQLite file: {{ db_data_dir }}/{{ target_db_name }})."
-          - "Executed {{ sql_files_local | length | default(0) }} script(s)."
+          - "DB migrations completed (SQLite file: {{ db_data_dir }}/{{ target_db_name }})."
+          - "Total SQL files found: {{ sql_files_local | length | default(0) }}"
+          - "Already applied: {{ applied_migrations | length | default(0) }}"
+          - "Newly applied: {{ pending_migrations | length | default(0) }}"
       changed_when: false
-
-    # -----------------------
-    # COPY/DEPLOY APP CODE -> use rsync (synchronize) instead of copy with recurse/exclude
-    # -----------------------
 
     - name: "Ensure parent directory for app_remote_path exists"
       file:
@@ -166,7 +208,6 @@
         delete: no
         rsync_opts:
           - "--exclude=backend/data"
-      # note: synchronize uses rsync on controller and remote. Controller must have rsync installed.
 
     - name: "Fix ownership of deployed app files"
       file:
@@ -221,4 +262,3 @@
     - name: "Show app health output"
       debug:
         msg: "{{ healthcheck.content }}"
-

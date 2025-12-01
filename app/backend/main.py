@@ -237,7 +237,61 @@ def get_current_user_info():
         'user': g.current_user
     }), 200
 
+@app.route('/api/auth/me', methods=['PUT'])
+@require_auth
+def update_current_user():
+    """Update current user's email / full_name / password"""
+    try:
+        data = request.get_json() or {}
+        email = data.get('email')
+        full_name = data.get('full_name')
+        new_password = data.get('password')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Build update dynamically
+        updates = []
+        params = []
+
+        if email is not None:
+            updates.append("email = ?")
+            params.append(email.strip())
+
+        if full_name is not None:
+            updates.append("full_name = ?")
+            params.append(full_name.strip())
+
+        if new_password:
+            if len(new_password) < 6:
+                return jsonify({'success': False, 'error': 'Password must be at least 6 characters'}), 400
+            updates.append("password_hash = ?")
+            params.append(hash_password(new_password))
+
+        if not updates:
+            return jsonify({'success': False, 'error': 'No fields provided to update'}), 400
+
+        params.append(datetime.now().isoformat())
+        params.append(g.current_user['id'])
+
+        sql = f"UPDATE Users SET {', '.join(updates)}, updated_at = ? WHERE id = ?"
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+
+        # Return new user info
+        cursor.execute("SELECT id, username, email, full_name FROM Users WHERE id = ?", (g.current_user['id'],))
+        user_row = cursor.fetchone()
+        user = dict(user_row) if user_row else None
+
+        return jsonify({'success': True, 'user': user}), 200
+
+    except sqlite3.IntegrityError:
+        return jsonify({'success': False, 'error': 'Email already in use'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ============= CRUD ENDPOINTS FOR PEOPLE (with auth) =============
+# Note: relation column is added/used here (frontend will send/receive relation)
 
 @app.route('/api/people', methods=['GET'])
 @require_auth
@@ -249,7 +303,7 @@ def get_all_people():
 
         cursor.execute("""
             SELECT id, given_name, family_name, other_names, gender,
-                   birth_date, death_date, birth_place, bio, privacy,
+                   birth_date, death_date, birth_place, bio, relation,
                    created_at, updated_at
             FROM People
             WHERE is_deleted = 0 AND user_id = ?
@@ -274,7 +328,7 @@ def get_person(person_id):
 
         cursor.execute("""
             SELECT id, given_name, family_name, other_names, gender,
-                   birth_date, death_date, birth_place, bio, privacy,
+                   birth_date, death_date, birth_place, bio, relation,
                    created_at, updated_at
             FROM People
             WHERE id = ? AND is_deleted = 0 AND user_id = ?
@@ -312,7 +366,7 @@ def create_person():
         cursor.execute("""
             INSERT INTO People (
                 given_name, family_name, other_names, gender,
-                birth_date, death_date, birth_place, bio, privacy,
+                birth_date, death_date, birth_place, bio, relation,
                 created_at, updated_at, is_deleted, user_id
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
         """, (
@@ -324,7 +378,7 @@ def create_person():
             data.get('death_date'),
             data.get('birth_place'),
             data.get('bio'),
-            data.get('privacy', 'private'),
+            data.get('relation'),
             now_iso,
             now_iso,
             g.current_user['id']
@@ -373,7 +427,7 @@ def update_person(person_id):
                 death_date = ?,
                 birth_place = ?,
                 bio = ?,
-                privacy = ?,
+                relation = ?,
                 updated_at = ?
             WHERE id = ? AND user_id = ?
         """, (
@@ -385,7 +439,7 @@ def update_person(person_id):
             data.get('death_date'),
             data.get('birth_place'),
             data.get('bio'),
-            data.get('privacy'),
+            data.get('relation'),
             now_iso,
             person_id,
             g.current_user['id']
@@ -477,3 +531,4 @@ if __name__ == '__main__':
         os.makedirs(db_dir, exist_ok=True)
 
     app.run(debug=True, host='0.0.0.0', port=80)
+

@@ -1,5 +1,32 @@
 PRAGMA foreign_keys = ON;
 
+-- Add Users table for authentication
+CREATE TABLE Users (
+  id INTEGER PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  email TEXT UNIQUE,
+  full_name TEXT,
+  created_at TEXT,
+  updated_at TEXT,
+  is_active INTEGER DEFAULT 1
+);
+
+CREATE INDEX idx_users_username ON Users(username);
+CREATE INDEX idx_users_email ON Users(email);
+
+CREATE TABLE Sessions (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  session_token TEXT UNIQUE NOT NULL,
+  created_at TEXT,
+  expires_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES Users(id)
+);
+
+CREATE INDEX idx_sessions_token ON Sessions(session_token);
+CREATE INDEX idx_sessions_user_id ON Sessions(user_id);
+
 -- ===========================
 -- Revisions
 -- ===========================
@@ -28,7 +55,8 @@ CREATE TABLE People (
   privacy TEXT,
   created_at TEXT,
   updated_at TEXT,
-  is_deleted INTEGER
+  is_deleted INTEGER,
+  user_id INTEGER REFERENCES Users(id)
 );
 
 CREATE INDEX idx_people_id ON People(id);
@@ -86,10 +114,10 @@ CREATE TABLE Events (
   event_date TEXT,
   place TEXT,
   description TEXT,
-  created_by INTEGER,
+  created_by INTEGER REFERENCES People(id),
+  user_id INTEGER REFERENCES Users(id),
   created_at TEXT,
-  updated_at TEXT,
-  FOREIGN KEY (created_by) REFERENCES People(id)
+  updated_at TEXT
 );
 
 -- ===========================
@@ -100,7 +128,8 @@ CREATE TABLE Sources (
   title TEXT,
   url TEXT,
   citation_text TEXT,
-  created_at TEXT
+  created_at TEXT,
+  user_id INTEGER REFERENCES Users(id)
 );
 
 -- ===========================
