@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated Login Page"
+git commit -m "Updated Relations DB Column"
 git branch -M main
 git push -u origin main
 
