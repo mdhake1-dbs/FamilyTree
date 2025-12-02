@@ -1,0 +1,318 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+}
+
+/* SHARED LAYOUT */
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 12px;
+}
+
+.subtitle {
+    color: #666;
+    margin-top: 4px;
+}
+
+.user-info {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.user-name {
+    font-weight: 700;
+    color: #333;
+}
+
+button {
+    padding: 8px 14px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button.secondary {
+    background: #6c757d;
+}
+
+button.delete {
+    background: #dc3545;
+}
+
+button.small {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.section {
+    margin-top: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #333;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th,
+td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    font-size: 14px;
+}
+
+th {
+    background: #f8f9fa;
+}
+
+.actions button {
+    padding: 6px 8px;
+    margin-right: 6px;
+    font-size: 12px;
+}
+
+.message {
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    display: block;
+}
+
+.message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    display: block;
+}
+
+/* HOMEPAGE */
+
+.homepage {
+    padding: 30px;
+    color: #333;
+}
+
+.homepage-inner {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.homepage-text {
+    margin-top: 12px;
+    color: #555;
+}
+
+.homepage-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 18px;
+}
+
+/* PROFILE */
+
+.profile-section {
+    display: flex;
+    justify-content: center;
+}
+
+.profile-box {
+    border: 1px solid #eee;
+    padding: 12px;
+    border-radius: 6px;
+    max-width: 480px;
+}
+
+.profile-box h3 {
+    margin-bottom: 10px;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* MAIN LAYOUT WITH SIDEBAR */
+
+.layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.sidebar {
+    width: 230px;
+    border-right: 1px solid #eee;
+    padding-right: 16px;
+}
+
+.sidebar h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.sidebar .nav-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 8px;
+}
+
+.main-content {
+    flex: 1;
+    min-height: 200px;
+}
+
+/* AUTH PAGE */
+
+.auth-container {
+    max-width: 450px;
+    margin: 80px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.auth-title {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.auth-tabs {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 16px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #666;
+}
+
+.auth-tab.active {
+    color: #007bff;
+}
+
+.btn-full {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* FORMS / SECTIONS */
+
+.form-actions {
+    margin-top: 8px;
+}
+
+.section-toolbar {
+    margin-bottom: 10px;
+}
+
+.section-toolbar button + button {
+    margin-left: 6px;
+}
+
+/* RELATIONSHIPS */
+
+.relationship-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.relationships-list {
+    margin-top: 18px;
+}
+
+/* APP WRAPPER */
+
+.app-wrapper {
+    padding: 20px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+    .layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #eee;
+        padding-right: 0;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+    }
+}
+
