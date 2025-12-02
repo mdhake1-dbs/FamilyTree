@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated UI and CRUD on Events, People Relationships"
+git commit -m "Updated SQL Schema"
 git branch -M main
 git push -u origin main
 
