@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated SQL Schema"
+git commit -m "Updated Fixed SQL Build Error"
 git branch -M main
 git push -u origin main
 
