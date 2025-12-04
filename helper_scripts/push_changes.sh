@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Fixed Module import Errors created after sepration of modules"
+git commit -m "Updated .gitignore to exclude Python Cache files"
 git branch -M main
 git push -u origin main
 
