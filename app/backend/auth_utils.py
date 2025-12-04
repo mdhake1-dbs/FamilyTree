@@ -3,7 +3,7 @@ import secrets
 from datetime import datetime
 from functools import wraps
 from flask import request, jsonify, g
-from database import get_db_connection
+from .database import get_db_connection
 
 def hash_password(password: str) -> str:
     """Simple password hashing (use bcrypt in production)."""

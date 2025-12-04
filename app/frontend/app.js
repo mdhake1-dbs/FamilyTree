@@ -1,5 +1,5 @@
 // ===== CONFIG =====
-const API_URL = 'api'; // adjust if backend runs on a different host/port
+const API_URL = '/api'; 
 let authToken = localStorage.getItem('authToken');
 let currentUser = null;
 let editingId = null;              // for person edit

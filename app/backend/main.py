@@ -5,9 +5,9 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 
-from config import Config
-from database import init_db, close_db_connection
-from routes import register_routes
+from backend.config import Config
+from backend.database import init_db, close_db_connection
+from backend.routes import register_routes
 
 load_dotenv()
 

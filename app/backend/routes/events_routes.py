@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, g
 from datetime import datetime
-from database import get_db_connection
-from auth_utils import require_auth
+from ..database import get_db_connection
+from ..auth_utils import require_auth
 
 events_bp = Blueprint('events', __name__, url_prefix='/api/events')
 

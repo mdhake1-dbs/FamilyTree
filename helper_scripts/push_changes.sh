@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Separated Backend into different modules and submodules"
+git commit -m "Fixed Module import Errors created after sepration of modules"
 git branch -M main
 git push -u origin main
 

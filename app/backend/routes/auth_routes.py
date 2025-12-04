@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, g
 from datetime import datetime, timedelta
 import sqlite3
-from database import get_db_connection
-from auth_utils import hash_password, generate_session_token, require_auth
+from ..database import get_db_connection
+from ..auth_utils import hash_password, generate_session_token, require_auth
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 

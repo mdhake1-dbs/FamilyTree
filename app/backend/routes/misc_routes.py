@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, send_from_directory, current_app
-from database import get_db_connection
+from ..database import get_db_connection
 import os
 
 misc_bp = Blueprint('misc', __name__)
