@@ -5,8 +5,6 @@
   vars:
     app_image: "familytree:latest"
     app_container_name: "familytreevault"
-    target_db_name: "demoDB.sqlite"
-    db_data_dir: "/var/lib/{{ app_container_name }}/data"
     app_remote_path: "/home/ubuntu/app"
     container_user_uid: 1000
     container_user_name: "ubuntu"
@@ -71,126 +69,12 @@
         state: present
         update_cache: yes
 
-    - name: "Ensure DB data directory exists (for container mount)"
-      file:
-        path: "{{ db_data_dir }}"
-        state: directory
-        owner: "{{ container_user_name }}"
-        group: "{{ container_user_name }}"
-        mode: '0755'
-
-    - name: "Ensure remote SQL script directory exists"
-      file:
-        path: /tmp/db_init
-        state: directory
-        mode: '0755'
-
-    - name: "Gather SQL files from local db directory (sorted)"
-      set_fact:
-        sql_files_local: "{{ lookup('fileglob', playbook_dir + '/../db/*.sql', wantlist=True) | sort }}"
-
-    - name: "Debug: list SQL files found"
-      debug:
-        msg: "SQL files (local): {{ sql_files_local | default([]) }}"
-      changed_when: false
-
-    - name: "Copy SQL scripts to target (preserving order) (if any)"
-      copy:
-        src: "{{ item }}"
-        dest: "/tmp/db_init/{{ item | basename }}"
-        mode: '0644'
-      loop: "{{ sql_files_local | default([]) }}"
-      when: sql_files_local | length > 0
-
-    - name: "Check if SQLite DB file exists"
-      stat:
-        path: "{{ db_data_dir }}/{{ target_db_name }}"
-      register: db_file_stat
-
-    - name: "Create SQLite DB file if missing"
-      file:
-        path: "{{ db_data_dir }}/{{ target_db_name }}"
-        state: touch
-        owner: "{{ container_user_name }}"
-        group: "{{ container_user_name }}"
-        mode: '0644'
-      when: not db_file_stat.stat.exists
-
-    - name: "Create migrations tracking table"
-      shell: |
-        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" <<'EOF'
-        CREATE TABLE IF NOT EXISTS schema_migrations (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          filename TEXT NOT NULL UNIQUE,
-          applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        EOF
-      when: sql_files_local | length > 0
-
-    - name: "Get list of already applied migrations"
-      shell: |
-        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" "SELECT filename FROM schema_migrations ORDER BY filename;"
-      register: applied_migrations_result
-      changed_when: false
-      when: sql_files_local | length > 0
-
-    - name: "Parse applied migrations"
-      set_fact:
-        applied_migrations: "{{ applied_migrations_result.stdout_lines | default([]) }}"
-      when: sql_files_local | length > 0
-
-    - name: "Debug: show applied migrations"
-      debug:
-        msg: "Already applied migrations: {{ applied_migrations | default([]) }}"
-      changed_when: false
-      when: sql_files_local | length > 0
-
-    - name: "Determine pending migrations"
-      set_fact:
-        pending_migrations: "{{ sql_files_local | map('basename') | difference(applied_migrations | default([])) | sort }}"
-      when: sql_files_local | length > 0
-
-    - name: "Debug: show pending migrations"
-      debug:
-        msg: "Pending migrations to apply: {{ pending_migrations | default([]) }}"
-      changed_when: false
-      when: sql_files_local | length > 0
-
-    - name: "Apply pending migrations"
-      shell: |
-        set -e
-        FILENAME="{{ item }}"
-        echo "Applying migration: $FILENAME"
-        
-        # Apply the SQL file
-        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" < "/tmp/db_init/$FILENAME"
-        
-        # Record the migration
-        sqlite3 "{{ db_data_dir }}/{{ target_db_name }}" \
-          "INSERT INTO schema_migrations (filename) VALUES ('$FILENAME');"
-        
-        echo "Successfully applied: $FILENAME"
-      loop: "{{ pending_migrations | default([]) }}"
-      when: 
-        - sql_files_local | length > 0
-        - pending_migrations | length > 0
-      register: migration_results
-
     - name: "Ensure DB file ownership and permissions"
       file:
         path: "{{ db_data_dir }}/{{ target_db_name }}"
         owner: "{{ container_user_name }}"
         group: "{{ container_user_name }}"
         mode: '0644'
-
-    - name: "Debug: Migration summary"
-      debug:
-        msg:
-          - "DB migrations completed (SQLite file: {{ db_data_dir }}/{{ target_db_name }})."
-          - "Total SQL files found: {{ sql_files_local | length | default(0) }}"
-          - "Already applied: {{ applied_migrations | length | default(0) }}"
-          - "Newly applied: {{ pending_migrations | length | default(0) }}"
-      changed_when: false
 
     - name: "Ensure parent directory for app_remote_path exists"
       file:
@@ -241,10 +125,6 @@
         restart_policy: always
         ports:
           - "{{ http_port }}:80"
-        volumes:
-          - "{{ db_data_dir }}:/app/data"
-        env:
-          SQLITE_DB_PATH: "/app/data/{{ target_db_name }}"
         user: "{{ container_user_uid }}:{{ container_user_uid }}"
         detach: true
 

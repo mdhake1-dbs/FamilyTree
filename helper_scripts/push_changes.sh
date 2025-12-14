@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated Python Backend to apply SQL Migrations and avoid it from CI-CD and Ansible"
+git commit -m "Removed SQL DB and Migrations from ansible"
 git branch -M main
 git push -u origin main
 
