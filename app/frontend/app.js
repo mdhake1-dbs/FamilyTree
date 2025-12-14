@@ -1,6 +1,6 @@
 // Configurattion Details 
 const API_URL = '/api'; 
-let authToken = localStorage.getItem('authToken');
+let authToken = sessionStorage.getItem('authToken');
 let currentUser = null;
 let editingId = null;              // ID to track current active User
 let editingRelationshipId = null;  // ID
@@ -74,7 +74,7 @@ async function checkAuth() {
             return true;
         } else {
             authToken = null;
-            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('authToken');
             return false;
         }
     } catch (err) {
@@ -126,7 +126,7 @@ async function onLoginSubmit(e) {
         if (res.success) {
             authToken = res.token;
             currentUser = res.user;
-            localStorage.setItem('authToken', authToken);
+            sessionStorage.setItem('authToken', authToken);
             showApp();
             showHome();
         } else {
@@ -176,7 +176,7 @@ async function logout() {
     }
     authToken = null;
     currentUser = null;
-    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
     showAuth();
 }
 

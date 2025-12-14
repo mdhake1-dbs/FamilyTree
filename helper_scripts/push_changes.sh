@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Minor Cleanup and Updates to deployment files [Ansible and Gitactions]"
+git commit -m "Updated Javascript to have sessionstorage to resolve auto login issue"
 git branch -M main
 git push -u origin main
 
