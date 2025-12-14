@@ -32,16 +32,6 @@ jobs:
       - name: Checkout Code (for migrations)
         uses: actions/checkout@v4
       
-      - name: Copy migration files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "db/*.sql"
-          target: "/tmp/deploy-migrations/"
-          strip_components: 0
-      
       - name: Deploy to EC2 with Migrations
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -51,74 +41,8 @@ jobs:
           script: |
             set -e
             echo "=== Starting Deployment ==="
-            
-            # Ensure DB folder exists on instance (persistent storage)
-            sudo mkdir -p /var/lib/familytreevault/data
-            
-            DB_PATH="/var/lib/familytreevault/data/demoDB.sqlite"
-            MIGRATIONS_DIR="/tmp/deploy-migrations/db"
-            
-            # If DB file doesn't exist, create it
-            if [ ! -f "$DB_PATH" ]; then
-              echo "Creating empty SQLite DB..."
-              sudo sqlite3 "$DB_PATH" "VACUUM;"
-              sudo chown ubuntu:ubuntu "$DB_PATH"
-              sudo chmod 644 "$DB_PATH"
-            fi
-            
-            echo "=== Running Database Migrations ==="
-            
-            # Create migrations tracking table if it doesn't exist
-            sudo sqlite3 "$DB_PATH" <<'EOF'
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              filename TEXT NOT NULL UNIQUE,
-              applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            EOF
-            
-            # Get list of already applied migrations
-            APPLIED_MIGRATIONS=$(sudo sqlite3 "$DB_PATH" "SELECT filename FROM schema_migrations ORDER BY filename;")
-            echo "Already applied migrations:"
-            echo "$APPLIED_MIGRATIONS"
-            
-            # Check if migrations directory exists and has files
-            if [ -d "$MIGRATIONS_DIR" ] && [ "$(ls -A $MIGRATIONS_DIR/*.sql 2>/dev/null)" ]; then
-              echo "Found migration files, processing..."
-              
-              # Process each SQL file in sorted order
-              for sql_file in $(ls "$MIGRATIONS_DIR"/*.sql | sort); do
-                FILENAME=$(basename "$sql_file")
-                
-                # Check if this migration has already been applied
-                if echo "$APPLIED_MIGRATIONS" | grep -q "^$FILENAME$"; then
-                  echo "⏭️  Skipping already applied: $FILENAME"
-                else
-                  echo "▶️  Applying migration: $FILENAME"
-                  
-                  # Apply the migration
-                  if sudo sqlite3 "$DB_PATH" < "$sql_file"; then
-                    # Record the migration
-                    sudo sqlite3 "$DB_PATH" "INSERT INTO schema_migrations (filename) VALUES ('$FILENAME');"
-                    echo "✅ Successfully applied: $FILENAME"
-                  else
-                    echo "❌ Failed to apply migration: $FILENAME"
-                    exit 1
-                  fi
-                fi
-              done
-              
-              echo "✅ All migrations completed successfully"
-            else
-              echo "ℹ️  No migration files found in $MIGRATIONS_DIR"
-            fi
-            
-            # Fix ownership after migrations
-            sudo chown ubuntu:ubuntu "$DB_PATH"
-            sudo chmod 644 "$DB_PATH"
-            
             echo "=== Updating Container ==="
-            
+
             # Pull latest image
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/familytree:latest
             
@@ -131,8 +55,6 @@ jobs:
               --name familytreevault \
               -p 80:80 \
               --restart always \
-              -e SQLITE_DB_PATH="/app/data/demoDB.sqlite" \
-              -v /var/lib/familytreevault/data:/app/data \
               -u 1000:1000 \
               ${{ secrets.DOCKERHUB_USERNAME }}/familytree:latest
             
@@ -142,21 +64,16 @@ jobs:
             
             # Check if container is running
             if sudo docker ps | grep -q familytreevault; then
-              echo "✅ Container is running"
+              echo "Container is running"
               
               # Optional: Health check
               if curl -f http://localhost/api/health > /dev/null 2>&1; then
-                echo "✅ Application health check passed"
+                echo "Application health check passed"
               else
-                echo "⚠️  Health check endpoint not responding (may still be starting)"
+                echo "Health check endpoint not responding (may still be starting)"
               fi
             else
-              echo "❌ Container failed to start"
+              echo "Container failed to start"
               sudo docker logs familytreevault
               exit 1
             fi
-            
-            # Cleanup temporary migration files
-            rm -rf /tmp/deploy-migrations
-            
-            echo "=== Deployment Complete ==="
