@@ -418,7 +418,6 @@ kill -9 <PID>
 ### Backend
 - [Flask documentation](https://flask.palletsprojects.com/)
 - [SQLite documentation](https://www.sqlite.org/docs.html)
-- [PyJWT library](https://pyjwt.readthedocs.io/)
 - [Flask-CORS](https://flask-cors.readthedocs.io/)
 
 ### Frontend
@@ -427,6 +426,7 @@ kill -9 <PID>
 - [DOM manipulation](https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model)
 
 ### Infrastructure
+- [Self Git Repository Infrastructure Setup] (https://github.com/mdhake1-dbs/network-sys-assessment)
 - [Terraform documentation](https://developer.hashicorp.com/terraform/docs)
 - [Ansible documentation](https://docs.ansible.com/)
 - [Docker documentation](https://docs.docker.com/)
