@@ -5,9 +5,9 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 
-from backend.config import Config
-from backend.database import init_db, close_db_connection
-from backend.routes import register_routes
+from app.backend.config import Config
+from app.backend.database import init_db, close_db_connection
+from app.backend.routes import register_routes
 
 load_dotenv()
 
@@ -30,4 +30,4 @@ if __name__ == '__main__':
     if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
 
-    app.run(debug=True, host='0.0.0.0', port=80)
+    app.run(debug=True, host='0.0.0.0', port=4000)

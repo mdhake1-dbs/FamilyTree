@@ -1,14 +1,13 @@
-// ===== CONFIG =====
-const API_URL = '/api'; 
+// Configurattion Details 
+const API_URL = 'http://localhost:4000/api'; 
 let authToken = localStorage.getItem('authToken');
 let currentUser = null;
-let editingId = null;              // for person edit
-let editingRelationshipId = null;  // for relationship edit
-let editingEventId = null;         // for event edit
+let editingId = null;              // ID to track current active User
+let editingRelationshipId = null;  // ID
+let editingEventId = null;         // ID
 
 const RELATION_TYPES = ['father', 'mother', 'brother', 'sister', 'husband', 'wife'];
 
-// ===== AUTH UI =====
 function switchAuthTab(tab) {
     const msg = document.getElementById('authMessage');
     msg.style.display = 'none';
