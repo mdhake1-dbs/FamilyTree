@@ -57,7 +57,7 @@ FamilyTree/
 │
 ├── app/
 │   ├── backend/
-│   │   ├── auth_utils.py   # JWT and password hashing
+│   │   ├── auth_utils.py   # Authentication Utilities
 │   │   ├── config.py       # Application configuration
 │   │   ├── database.py     # Database utilities
 │   │   ├── main.py         # Flask application entry point
@@ -138,7 +138,6 @@ Configure the application by creating `.env` in `app/backend/`:
 FLASK_APP=backend.main
 FLASK_ENV=development
 SECRET_KEY=your-secret-key-here
-JWT_SECRET_KEY=your-jwt-secret-here
 DATABASE_URI=sqlite:///familytree.db
 CORS_ORIGINS=http://localhost:3000,http://localhost:5000
 ```
@@ -455,10 +454,6 @@ Follow PEP 8 for Python code and write tests for new features. Make sure all tes
 - Enhanced timeline visualizations
 - Real-time collaboration features
 - Import from other genealogy tools
-
-## License
-
-This project is licensed under the MIT License.
 
 ## Acknowledgments
 
