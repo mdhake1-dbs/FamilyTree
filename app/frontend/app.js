@@ -1,5 +1,5 @@
 // Configurattion Details 
-const API_URL = 'http://localhost:4000/api'; 
+const API_URL = '/api'; 
 let authToken = localStorage.getItem('authToken');
 let currentUser = null;
 let editingId = null;              // ID to track current active User

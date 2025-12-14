@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Removed SQL DB and Migrations from Git Actions"
+git commit -m "Added Cleanup code for docker"
 git branch -M main
 git push -u origin main
 

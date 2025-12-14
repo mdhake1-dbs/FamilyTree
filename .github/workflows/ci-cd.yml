@@ -41,7 +41,9 @@ jobs:
           script: |
             set -e
             echo "=== Starting Deployment ==="
-            echo "=== Updating Container ==="
+
+	    echo "=== Docker Cleanup ==="
+            sudo docker system prune -a -f --volumes
 
             # Pull latest image
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/familytree:latest
