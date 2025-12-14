@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated Javascript to have sessionstorage to resolve auto login issue"
+git commit -m "Version 1 Readme"
 git branch -M main
 git push -u origin main
 
