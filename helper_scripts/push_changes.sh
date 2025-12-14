@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Updated Python Imports"
+git commit -m "Minor Cleanup and Updates to deployment files [Ansible and Gitactions]"
 git branch -M main
 git push -u origin main
 

@@ -1,5 +1,5 @@
 ---
-- name: "Configure web VM (SQLite + build app image with migrations)"
+- name: "Configure app image"
   hosts: web
   become: yes
   vars:
@@ -68,13 +68,15 @@
           - libsqlite3-dev
         state: present
         update_cache: yes
-
-    - name: "Ensure DB file ownership and permissions"
+        
+    - name: "Ensure persistent DB directory exists"
       file:
-        path: "{{ db_data_dir }}/{{ target_db_name }}"
+        path: /home/ubuntu/familytree-data
+        state: directory
         owner: "{{ container_user_name }}"
         group: "{{ container_user_name }}"
-        mode: '0644'
+        mode: '0755'
+
 
     - name: "Ensure parent directory for app_remote_path exists"
       file:
@@ -91,7 +93,7 @@
         archive: yes
         delete: no
         rsync_opts:
-          - "--exclude=backend/data"
+          - "--exclude=data"
 
     - name: "Fix ownership of deployed app files"
       file:
@@ -125,6 +127,10 @@
         restart_policy: always
         ports:
           - "{{ http_port }}:80"
+        volumes:
+          - /home/ubuntu/familytree-data:/app/data
+        env:
+          SQLITE_DB_PATH: /app/data/familytree.db
         user: "{{ container_user_uid }}:{{ container_user_uid }}"
         detach: true
 
