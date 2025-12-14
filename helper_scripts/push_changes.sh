@@ -20,7 +20,7 @@ fi
 
 # Stage, commit, and push
 git add .
-git commit -m "Added Cleanup code for docker"
+git commit -m "Updated Python Imports"
 git branch -M main
 git push -u origin main
 
