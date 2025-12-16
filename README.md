@@ -77,23 +77,23 @@ Create a report from all the data to have a complete picture of a life of any pe
 ## Documentation Resources
 
 ### Backend
-- [Flask and CORS Usage for Python API] (https://flask-cors.readthedocs.io/en/latest/api.html)
+- [Flask and CORS Usage for Python API](https://flask-cors.readthedocs.io/en/latest/api.html)
 - [SQLite Connection in Python](https://docs.python.org/3/library/sqlite3.html)
 - [Password SHA256 hash in Python](https://docs.python.org/3/library/hashlib.html)
 
 ### Frontend
-- [Javascript Event Listeners] (https://www.w3schools.com/JS/js_htmldom_eventlistener.asp)
-- [JavaScript HTML DOM Elements] (https://www.w3schools.com/JS/js_htmldom_elements.asp)
-- [JavaScript Fetch API] (https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
-- [Use Session Storage tokens for Authentication in JS](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage)
+- [Javascript Event Listeners](https://www.w3schools.com/JS/js_htmldom_eventlistener.asp)
+- [JavaScript HTML DOM Elements](https://www.w3schools.com/JS/js_htmldom_elements.asp)
+- [JavaScript Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
+- [Use Session Storage tokens for Authentication in JS] (https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage)
 
 
 ### Infrastructure
-- [Self Git Repository for Infrastructure Setup] (https://github.com/mdhake1-dbs/network-sys-assessment)
+- [Self Git Repository for Infrastructure Setup](https://github.com/mdhake1-dbs/network-sys-assessment)
 
 ### AI Usage
-- Used ChatGPT for Code Realignment (https://chatgpt.com/share/69414d25-0cc4-8001-8863-6584c5ee3c8f) 
-- Used ChatGPT for frontend changes and modifications (https://chatgpt.com/share/69414dbb-9a84-8001-8182-a6e95074051c)
+- ChatGPT for Code Realignment (https://chatgpt.com/share/69414d25-0cc4-8001-8863-6584c5ee3c8f) 
+- ChatGPT for frontend changes and modifications (https://chatgpt.com/share/69414dbb-9a84-8001-8182-a6e95074051c)
 
 
 ## Acknowledgments
