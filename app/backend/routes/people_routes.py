@@ -5,6 +5,8 @@ from ..auth_utils import require_auth
 
 people_bp = Blueprint('people', __name__, url_prefix='/api/people')
 
+#app.js Line no 302, 325
+
 @people_bp.route('', methods=['GET'])
 @require_auth
 def get_all_people():
@@ -29,6 +31,8 @@ def get_all_people():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+#app.js Line no 371
 @people_bp.route('/<int:person_id>', methods=['GET'])
 @require_auth
 def get_person(person_id):
